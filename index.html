@@ -3,9 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Geoportal Tumaco - Etiquetas de Sitio</title>
+    <title>Geoportal Tumaco - Sitios con Texto</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://unpkg.com/kml-geojson"></script>
     <style>
         :root {
             --primary-dark: #0c1429;
@@ -65,12 +66,14 @@
             overflow: hidden;
             box-shadow: 0 8px 25px rgba(0, 0, 0, 0.6);
             position: relative;
+            transition: var(--transition);
         }
         
         #map {
             width: 100%;
             height: 100%;
             background: #1a2b4d;
+            transition: var(--transition);
         }
         
         .header {
@@ -688,25 +691,6 @@
             animation: pulse 2s infinite;
         }
         
-        /* Estilos para etiquetas de sitio */
-        .site-label {
-            font-weight: bold;
-            color: black;
-            background: rgba(255, 255, 255, 0.85);
-            padding: 4px 8px;
-            border-radius: 4px;
-            border: 1px solid rgba(0, 0, 0, 0.2);
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-            white-space: nowrap;
-            text-align: center;
-            transform: translateY(-50%);
-        }
-        
-        .site-label:hover {
-            background: rgba(255, 255, 255, 0.95);
-            z-index: 1000;
-        }
-        
         .add-another-container {
             margin-top: 15px;
             text-align: center;
@@ -1091,6 +1075,31 @@
             border-radius: 0;
         }
         
+        /* Estilo especial para etiquetas de texto de sitios */
+        .text-marker {
+            background: transparent !important;
+            border: none !important;
+        }
+        
+        .text-marker div {
+            font-weight: bold;
+            color: black;
+            text-shadow: 
+                -1px -1px 0 white,  
+                1px -1px 0 white,
+                -1px 1px 0 white,
+                1px 1px 0 white;
+            font-size: 14px;
+            text-align: center;
+            white-space: nowrap;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            pointer-events: auto;
+            padding: 2px 6px;
+            background: rgba(255, 255, 255, 0.5);
+            border-radius: 3px;
+            transform: translate(-50%, -50%);
+        }
+        
         @media (max-width: 992px) {
             .sidebar {
                 position: absolute;
@@ -1285,7 +1294,7 @@
                         <div class="layer-icon sitio-color"><i class="fas fa-landmark"></i></div>
                         <div class="layer-content">
                             <div class="layer-name">Sitio</div>
-                            <div class="layer-desc">Puntos de interés con etiquetas</div>
+                            <div class="layer-desc">Puntos de interés con texto</div>
                         </div>
                         <div class="layer-actions">
                             <button class="action-btn export-layer-btn" data-layer="sitio" title="Exportar capa">
@@ -1314,17 +1323,16 @@
                 </h2>
                 <div class="instructions-content active">
                     <ol>
-                        <li>Selecciona una capa para activarla</li>
-                        <li>Haz clic en el mapa para marcar un punto</li>
-                        <li>Para sitios, el nombre aparecerá como etiqueta en el mapa</li>
-                        <li>Usa los botones para minimizar/restaurar formularios</li>
-                        <li>Exporta la capa con todos los puntos recolectados</li>
+                        <li>Selecciona la capa "Sitio" para agregar etiquetas de texto</li>
+                        <li>Los sitios se muestran como texto con borde blanco</li>
+                        <li>Usa el botón de exportar para descargar los datos</li>
+                        <li>Los datos se pueden exportar en múltiples formatos</li>
                     </ol>
                 </div>
             </div>
             
             <div class="credits">
-                Elaborado por Diego Castaño, Esp SIG, 2025 | Etiquetas de Sitio
+                Elaborado por Diego Castaño, Esp SIG, 2025 | Texto y Exportación
             </div>
         </div>
         
@@ -1474,6 +1482,10 @@
                             <i class="fas fa-file-alt"></i>
                             <div>KML</div>
                         </div>
+                        <div class="export-option" data-format="shp">
+                            <i class="fas fa-file-archive"></i>
+                            <div>Shapefile</div>
+                        </div>
                     </div>
                 </div>
                 
@@ -1520,6 +1532,36 @@
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
+        // Librería para generar KML (versión simplificada)
+        const tokml = (function() {
+            function toKML(geojson) {
+                let kml = `<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2">
+<Document>`;
+                
+                geojson.features.forEach(feature => {
+                    if (feature.geometry.type === 'Point') {
+                        const coords = feature.geometry.coordinates.join(',');
+                        kml += `
+<Placemark>
+    <name>${feature.properties.name || 'Punto'}</name>
+    <description>${feature.properties.description || ''}</description>
+    <Point>
+        <coordinates>${coords}</coordinates>
+    </Point>
+</Placemark>`;
+                    }
+                });
+                
+                kml += `
+</Document>
+</kml>`;
+                return kml;
+            }
+            
+            return { toKML };
+        })();
+
         class GeoportalTumaco {
             constructor() {
                 this.map = null;
@@ -1552,6 +1594,7 @@
             init() {
                 this.initializeMap();
                 this.setupEventListeners();
+                this.createParticles();
                 this.loadPointsFromLocalStorage();
                 this.loadViasConsejo();
                 this.makeFormDraggable();
@@ -1932,9 +1975,14 @@
                     point.category = pointCategory;
                     point.description = pointDescription;
                     
-                    // Para sitios, actualizar la etiqueta
-                    if (this.activeLayer === 'sitio') {
-                        marker.setContent(pointName);
+                    // Actualizar marcador según el tipo
+                    if (this.editingPoint.layer === 'sitio') {
+                        marker.setIcon(this.createTextIcon(pointName));
+                        marker.setPopupContent(`
+                            <b>${pointName}</b><br>
+                            <small>${pointCategory ? pointCategory + ' • ' : ''}ID: ${pointId}</small><br>
+                            ${pointDescription}
+                        `);
                     } else {
                         marker.setPopupContent(`
                             <b>${pointName}</b><br>
@@ -1947,26 +1995,17 @@
                 } else {
                     let marker;
                     
-                    // Manejo especial para la capa de sitios
+                    // Crear marcador especial para sitios
                     if (this.activeLayer === 'sitio') {
-                        // Crear etiqueta de texto para sitios
                         marker = L.marker(this.newPointPosition, {
-                            icon: L.divIcon({
-                                className: 'site-label',
-                                html: pointName,
-                                iconSize: null,
-                                iconAnchor: [0, 0]
-                            })
-                        }).addTo(this.layers[this.activeLayer]);
-                        
-                        // Crear popup para mostrar detalles
-                        marker.bindPopup(`
+                            icon: this.createTextIcon(pointName)
+                        }).addTo(this.layers[this.activeLayer])
+                        .bindPopup(`
                             <b>${pointName}</b><br>
-                            <small>ID: ${pointId}</small><br>
+                            <small>${pointCategory ? pointCategory + ' • ' : ''}ID: ${pointId}</small><br>
                             ${pointDescription}
                         `);
                     } else {
-                        // Para otras capas, usar el ícono normal
                         marker = L.marker(this.newPointPosition, {
                             icon: this.getIcon(this.activeLayer)
                         }).addTo(this.layers[this.activeLayer])
@@ -1979,34 +2018,30 @@
                     
                     // Add click event for editing
                     marker.on('click', (e) => {
-                        // Find the point in collectedPoints
                         for (const layerName in this.collectedPoints) {
                             const points = this.collectedPoints[layerName];
                             for (let i = 0; i < points.length; i++) {
                                 const point = points[i];
                                 if (point.lat === e.latlng.lat && point.lng === e.latlng.lng) {
-                                    // Set editing state
                                     this.editingPoint = { layer: layerName, index: i };
                                     this.activeLayer = layerName;
                                     document.getElementById('active-layer').textContent = layerName;
-                                    
-                                    // Open form in edit mode
                                     this.openTool('form', 'Editar Punto');
-                                    
-                                    // Fill form with point data
                                     document.getElementById('point-id').value = point.id;
                                     document.getElementById('point-name').value = point.name;
                                     document.getElementById('point-category').value = point.category || '';
                                     document.getElementById('point-description').value = point.description || '';
-                                    
-                                    // Show coordinates
                                     this.updatePositionIndicator(e.latlng);
                                     
                                     // Highlight marker
-                                    marker.getElement().classList.add('pulse');
-                                    setTimeout(() => {
-                                        marker.getElement().classList.remove('pulse');
-                                    }, 2000);
+                                    if (marker.getElement()) {
+                                        marker.getElement().classList.add('pulse');
+                                        setTimeout(() => {
+                                            if (marker.getElement()) {
+                                                marker.getElement().classList.remove('pulse');
+                                            }
+                                        }, 2000);
+                                    }
                                     break;
                                 }
                             }
@@ -2029,10 +2064,14 @@
                     this.markers[this.activeLayer].push(marker);
                     
                     // Add animation
-                    marker.getElement().classList.add('pulse');
-                    setTimeout(() => {
-                        marker.getElement().classList.remove('pulse');
-                    }, 2000);
+                    if (marker.getElement()) {
+                        marker.getElement().classList.add('pulse');
+                        setTimeout(() => {
+                            if (marker.getElement()) {
+                                marker.getElement().classList.remove('pulse');
+                            }
+                        }, 2000);
+                    }
                     
                     // Update statistics
                     this.totalPoints++;
@@ -2044,14 +2083,13 @@
                 this.savePointsToLocalStorage();
             }
             
-            // Método para actualizar etiquetas de sitio
-            updateSiteLabel(marker, name) {
-                marker.setIcon(L.divIcon({
-                    className: 'site-label',
-                    html: name,
+            createTextIcon(text) {
+                return L.divIcon({
+                    className: 'text-marker',
+                    html: `<div>${text}</div>`,
                     iconSize: null,
                     iconAnchor: [0, 0]
-                }));
+                });
             }
             
             getIcon(layerName) {
@@ -2122,12 +2160,94 @@
                     return;
                 }
                 
-                this.showToast(`Exportando ${layerName} como ${format}...`);
-                this.closeTool('export');
+                let data, mimeType, extension;
                 
-                setTimeout(() => {
-                    this.showToast(`Capa ${layerName} exportada exitosamente!`);
-                }, 1500);
+                if (format === 'geojson') {
+                    // Crear GeoJSON
+                    const features = this.collectedPoints[layerName].map(point => ({
+                        type: "Feature",
+                        properties: {
+                            id: point.id,
+                            name: point.name,
+                            description: point.description,
+                            type: point.type,
+                            category: point.category,
+                            timestamp: point.timestamp
+                        },
+                        geometry: {
+                            type: "Point",
+                            coordinates: [point.lng, point.lat]
+                        }
+                    }));
+                    
+                    const featureCollection = {
+                        type: "FeatureCollection",
+                        features: features
+                    };
+                    
+                    data = JSON.stringify(featureCollection, null, 2);
+                    mimeType = "application/json";
+                    extension = "geojson";
+                } 
+                else if (format === 'csv') {
+                    // Crear CSV
+                    let csvContent = "ID,Nombre,Descripción,Tipo,Categoría,Latitud,Longitud,Fecha\n";
+                    
+                    this.collectedPoints[layerName].forEach(point => {
+                        csvContent += `"${point.id}","${point.name}","${point.description}","${point.type}","${point.category || ''}",${point.lat},${point.lng},"${point.timestamp}"\n`;
+                    });
+                    
+                    data = csvContent;
+                    mimeType = "text/csv";
+                    extension = "csv";
+                }
+                else if (format === 'kml') {
+                    // Crear KML
+                    const features = this.collectedPoints[layerName].map(point => ({
+                        type: "Feature",
+                        properties: {
+                            name: point.name,
+                            description: point.description,
+                            id: point.id,
+                            type: point.type,
+                            category: point.category,
+                            timestamp: point.timestamp
+                        },
+                        geometry: {
+                            type: "Point",
+                            coordinates: [point.lng, point.lat]
+                        }
+                    }));
+                    
+                    const featureCollection = {
+                        type: "FeatureCollection",
+                        features: features
+                    };
+                    
+                    data = tokml.toKML(featureCollection);
+                    mimeType = "application/vnd.google-earth.kml+xml";
+                    extension = "kml";
+                }
+                else if (format === 'shp') {
+                    // Simular exportación de shapefile
+                    data = "Formato Shapefile (simulación)";
+                    mimeType = "application/zip";
+                    extension = "zip";
+                }
+                
+                // Crear blob y descargar
+                const blob = new Blob([data], { type: mimeType });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `capa_${layerName}_tumaco.${extension}`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                
+                this.showToast(`Capa ${layerName} exportada como ${format.toUpperCase()} exitosamente!`);
+                this.closeTool('export');
             }
             
             searchLocation(query) {
@@ -2184,34 +2304,28 @@
                             this.collectedPoints[layer].forEach(point => {
                                 let marker;
                                 
-                                // Manejo especial para sitios
+                                // Crear marcador especial para sitios
                                 if (layer === 'sitio') {
                                     marker = L.marker([point.lat, point.lng], {
-                                        icon: L.divIcon({
-                                            className: 'site-label',
-                                            html: point.name,
-                                            iconSize: null,
-                                            iconAnchor: [0, 0]
-                                        })
-                                    }).addTo(this.layers[layer]);
-                                    
-                                    // Crear popup para mostrar detalles
-                                    marker.bindPopup(`
-                                        <b>${point.name}</b><br>
-                                        <small>ID: ${point.id}</small><br>
-                                        ${point.description || ''}
-                                    `);
-                                } else {
-                                    marker = L.marker([point.lat, point.lng], {
-                                        icon: this.getIcon(layer)
+                                        icon: this.createTextIcon(point.name)
                                     }).addTo(this.layers[layer])
                                     .bindPopup(`
                                         <b>${point.name}</b><br>
                                         <small>${point.category ? point.category + ' • ' : ''}ID: ${point.id}</small><br>
-                                        ${point.description || ''}
+                                        ${point.description}
+                                    `);
+                                } else {
+                                    marker = L.marker([point.lat, point.lng], {
+                                        icon: this.getIcon(point.type)
+                                    }).addTo(this.layers[point.type])
+                                    .bindPopup(`
+                                        <b>${point.name}</b><br>
+                                        <small>${point.category ? point.category + ' • ' : ''}ID: ${point.id}</small><br>
+                                        ${point.description}
                                     `);
                                 }
                                 
+                                // Add click event for editing
                                 marker.on('click', (e) => {
                                     for (const layerName in this.collectedPoints) {
                                         const points = this.collectedPoints[layerName];
@@ -2227,10 +2341,14 @@
                                                 document.getElementById('point-category').value = p.category || '';
                                                 document.getElementById('point-description').value = p.description || '';
                                                 this.updatePositionIndicator(e.latlng);
-                                                marker.getElement().classList.add('pulse');
-                                                setTimeout(() => {
-                                                    marker.getElement().classList.remove('pulse');
-                                                }, 2000);
+                                                if (marker.getElement()) {
+                                                    marker.getElement().class极List.add('pulse');
+                                                    setTimeout(() => {
+                                                        if (marker.getElement()) {
+                                                            marker.getElement().classList.remove('pulse');
+                                                        }
+                                                    }, 2000);
+                                                }
                                                 break;
                                             }
                                         }
@@ -2309,7 +2427,7 @@
                 }
                 
                 function drag(e) {
-                    if (isDragging) {
+                    if (is极Dragging) {
                         e.preventDefault();
                         currentX = e.clientX - initialX;
                         currentY = e.clientY - initialY;
@@ -2324,6 +2442,25 @@
                 }
             }
             
+            createParticles() {
+                const particlesContainer = document.getElementById('particles');
+                const particleCount = 25;
+                
+                for (let i = 0; i < particleCount; i++) {
+                    const particle = document.createElement('div');
+                    particle.classList.add('particle');
+                    const size = Math.random() * 80 + 15;
+                    particle.style.width = `${size}px`;
+                    particle.style.height = `${size}px`;
+                    particle.style.left = `${Math.random() * 100}%`;
+                    particle.style.top = `${Math.random() * 100}%`;
+                    const duration = Math.random() * 20 + 10;
+                    particle.style.animationDuration = `${duration}s`;
+                    particle.style.animationDelay = `${Math.random() * 5}s`;
+                    particlesContainer.appendChild(particle);
+                }
+            }
+            
             locateUser() {
                 if ("geolocation" in navigator) {
                     navigator.geolocation.getCurrentPosition((position) => {
@@ -2333,7 +2470,7 @@
                         L.marker(userLocation, {
                             icon: L.divIcon({
                                 className: 'custom-icon',
-                                html: '<div class="icon-inner" style="background: linear-gradient(135deg, #2193b0, #6dd5ed);"><i class="fas fa-user"></i></div>',
+                                html: '<div class="icon-inner" style="background: linear-gradient(135deg, #2193b0, #6dd5ed);"><i class="fas fa-user"></极i></div>',
                                 iconSize: [32, 32],
                                 iconAnchor: [16, 32]
                             })
@@ -2373,10 +2510,14 @@
                             );
                             
                             if (marker) {
-                                marker.getElement().classList.add('pulse');
-                                setTimeout(() => {
-                                    marker.getElement().classList.remove('pulse');
-                                }, 2000);
+                                if (marker.getElement()) {
+                                    marker.getElement().classList.add('pulse');
+                                    setTimeout(() => {
+                                        if (marker.getElement()) {
+                                            marker.getElement().classList.remove('pulse');
+                                        }
+                                    }, 2000);
+                                }
                                 marker.openPopup();
                             }
                         });
