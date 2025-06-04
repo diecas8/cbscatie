@@ -3,10 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Geoportal Tumaco - Marcador de Puntos</title>
+    <title>Geoportal Tumaco - Etiquetas de Sitio</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
+        :root {
+            --primary-dark: #0c1429;
+            --primary-darker: #081020;
+            --accent-color: #4caf50;
+            --accent-light: #6dd5ed;
+            --warning-color: #ff9a00;
+            --error-color: #ff416c;
+            --success-color: #56ab2f;
+            --sidebar-width: 380px;
+            --transition: all 0.3s ease;
+        }
+        
         * {
             margin: 0;
             padding: 0;
@@ -15,121 +27,187 @@
         }
         
         body {
-            background: linear-gradient(135deg, #0f1a3d, #2a0845, #0f1a3d);
+            background: linear-gradient(135deg, var(--primary-darker), var(--primary-dark));
             color: #fff;
             height: 100vh;
             overflow: hidden;
+            position: relative;
         }
         
-        .container {
+        .app-container {
             display: flex;
             height: 100vh;
             width: 100%;
-            padding: 15px;
-            gap: 15px;
+            padding: 10px;
+            gap: 10px;
+            position: relative;
         }
         
         .sidebar {
-            width: 350px;
-            background: rgba(15, 30, 60, 0.85);
-            border-radius: 15px;
-            padding: 20px;
+            width: var(--sidebar-width);
+            background: rgba(15, 30, 60, 0.92);
+            border-radius: 12px;
+            padding: 15px;
             display: flex;
             flex-direction: column;
-            box-shadow: 0 0 25px rgba(0, 0, 0, 0.7);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.6);
             backdrop-filter: blur(10px);
             overflow: hidden;
-            transition: all 0.3s ease;
+            transition: var(--transition);
             z-index: 1000;
             border: 1px solid rgba(76, 175, 80, 0.3);
+            position: relative;
         }
         
         .map-container {
             flex: 1;
-            border-radius: 15px;
+            border-radius: 12px;
             overflow: hidden;
-            box-shadow: 0 0 25px rgba(0, 0, 0, 0.7);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.6);
             position: relative;
         }
         
         #map {
             width: 100%;
             height: 100%;
+            background: #1a2b4d;
         }
         
         .header {
             text-align: center;
-            margin-bottom: 25px;
-            padding-bottom: 15px;
-            border-bottom: 2px solid #4CAF50;
+            margin-bottom: 20px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid var(--accent-color);
+            position: relative;
         }
         
         .header h1 {
-            font-size: 1.8rem;
+            font-size: 1.6rem;
             margin-bottom: 5px;
-            color: #4CAF50;
-            text-shadow: 0 0 10px rgba(76, 175, 80, 0.5);
+            color: var(--accent-color);
+            text-shadow: 0 0 15px rgba(76, 175, 80, 0.6);
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 10px;
+            gap: 8px;
         }
         
         .header p {
-            font-size: 0.9rem;
+            font-size: 0.85rem;
             opacity: 0.8;
-            margin-top: 8px;
+            margin-top: 12px;
+            font-weight: 300;
+        }
+        
+        .user-controls {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            display: flex;
+            gap: 8px;
+        }
+        
+        .user-btn {
+            background: rgba(76, 175, 80, 0.2);
+            border: 1px solid rgba(76, 175, 80, 0.4);
+            color: white;
+            padding: 6px 12px;
+            border-radius: 50px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: var(--transition);
+        }
+        
+        .user-btn:hover {
+            background: rgba(76, 175, 80, 0.4);
+            transform: translateY(-2px);
         }
         
         .layers-section {
             flex: 1;
             overflow-y: auto;
-            margin-bottom: 20px;
+            margin-bottom: 15px;
         }
         
         .section-title {
-            font-size: 1.2rem;
-            margin-bottom: 15px;
-            color: #4CAF50;
+            font-size: 1.1rem;
+            margin-bottom: 12px;
+            color: var(--accent-color);
             display: flex;
             align-items: center;
             cursor: pointer;
+            padding: 6px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
         }
         
         .section-title i {
-            margin-right: 10px;
+            margin-right: 8px;
             transition: transform 0.3s ease;
+            color: var(--accent-light);
         }
         
         .section-title.active i {
             transform: rotate(90deg);
         }
         
+        .search-layers {
+            width: 100%;
+            padding: 8px 12px;
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 8px;
+            margin-bottom: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: white;
+            font-size: 0.9rem;
+        }
+        
+        .search-layers:focus {
+            outline: none;
+            border-color: var(--accent-color);
+        }
+        
         .layer-list {
             list-style: none;
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 8px;
         }
         
         .layer-item {
-            background: rgba(255, 255, 255, 0.08);
+            background: rgba(255, 255, 255, 0.05);
             border-radius: 8px;
-            padding: 12px 15px;
-            margin-bottom: 10px;
+            padding: 12px;
             display: flex;
             align-items: center;
             cursor: pointer;
-            transition: all 0.3s ease;
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: var(--transition);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            position: relative;
+            overflow: hidden;
         }
         
         .layer-item:hover {
-            background: rgba(76, 175, 80, 0.2);
-            transform: translateX(5px);
-            border-color: rgba(76, 175, 80, 0.4);
+            background: rgba(76, 175, 80, 0.15);
+            transform: translateY(-3px);
+            border-color: rgba(76, 175, 80, 0.3);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+        
+        .layer-item::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
         }
         
         .layer-item.active {
             background: rgba(76, 175, 80, 0.25);
-            border-left: 4px solid #4CAF50;
+            border-left: 4px solid var(--accent-color);
         }
         
         .layer-icon {
@@ -142,18 +220,29 @@
             justify-content: center;
             font-size: 16px;
             background: rgba(0, 0, 0, 0.3);
-            box-shadow: 0 0 8极 rgba(0, 0, 0, 0.3);
+            box-shadow: 0 0 12px rgba(0, 0, 0, 0.3);
+            z-index: 2;
+        }
+        
+        .layer-content {
+            flex: 1;
         }
         
         .layer-name {
-            flex: 1;
-            font-weight: 500;
-            font-size: 1rem;
+            font-weight: 600;
+            font-size: 0.95rem;
+            margin-bottom: 3px;
+        }
+        
+        .layer-desc {
+            font-size: 0.75rem;
+            opacity: 0.7;
+            font-weight: 300;
         }
         
         .layer-actions {
             display: flex;
-            gap: 8px;
+            gap: 6px;
         }
         
         .action-btn {
@@ -167,7 +256,9 @@
             align-items: center;
             justify-content: center;
             cursor: pointer;
-            transition: all 0.3s ease;
+            transition: var(--transition);
+            z-index: 2;
+            font-size: 0.9rem;
         }
         
         .action-btn:hover {
@@ -177,26 +268,27 @@
         
         .position-indicator {
             position: absolute;
-            top: 20px;
-            left: 20px;
+            top: 15px;
+            left: 15px;
             z-index: 1000;
-            background: rgba(15, 30, 60, 极0.85);
+            background: rgba(15, 30, 60, 0.9);
             border-radius: 10px;
             padding: 15px;
             backdrop-filter: blur(5px);
-            border: 1px solid rgba(76, 175, 80, 0.3);
-            box-shadow: 0 0 15px rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(76, 175, 80, 0.4);
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.5);
             max-width: 280px;
+            min-width: 220px;
         }
         
         .position-title {
             font-weight: bold;
             margin-bottom: 10px;
-            color: #4CAF50;
+            color: var(--accent-color);
             display: flex;
             align-items: center;
             gap: 8px;
-            font-size: 1.1rem;
+            font-size: 1rem;
         }
         
         .position-data {
@@ -208,110 +300,227 @@
         .position-item {
             display: flex;
             justify-content: space-between;
+            font-size: 0.9rem;
         }
         
         .position-label {
             font-weight: 500;
-            color: #6dd5ed;
+            color: var(--accent-light);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.85rem;
         }
         
         .position-value {
             font-weight: 500;
+            font-family: monospace;
+            font-size: 0.9rem;
+        }
+        
+        .stats-container {
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+        
+        .stat-item {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 6px;
+            padding: 8px;
+            text-align: center;
+        }
+        
+        .stat-value {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: var(--accent-color);
+            line-height: 1.2;
+        }
+        
+        .stat-label {
+            font-size: 0.7rem;
+            opacity: 0.8;
+        }
+        
+        .stats-panel {
+            position: absolute;
+            bottom: 25px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1000;
+            background: rgba(15, 30, 60, 0.9);
+            border-radius: 10px;
+            padding: 12px 18px;
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(76, 175, 80, 0.4);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.6);
+            display: flex;
+            gap: 20px;
+            max-width: 90%;
+            overflow-x: auto;
+        }
+        
+        .stat-card {
+            min-width: 100px;
+            text-align: center;
+            padding: 8px 12px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .stat-number {
+            font-size: 1.6rem;
+            font-weight: bold;
+            color: var(--accent-light);
+            line-height: 1.2;
+            margin-bottom: 4px;
+            text-shadow: 0 0 8px rgba(109, 213, 237, 0.4);
+        }
+        
+        .stat-label {
+            font-size: 0.8rem;
+            opacity: 0.8;
+            text-transform: uppercase;
+            letter-spacing: 1px;
         }
         
         .mobile-menu-btn {
             display: none;
             position: absolute;
-            top: 20px;
-            left: 20px;
+            top: 15px;
+            left: 15px;
             z-index: 1000;
             background: rgba(15, 30, 60, 0.9);
             color: white;
             border: none;
             border-radius: 50%;
-            width: 50px;
-            height: 50px;
-            font-size: 1.5rem;
+            width: 45px;
+            height: 45px;
+            font-size: 1.3rem;
             cursor: pointer;
-            box-shadow: 0 0 15px rgba(0, 0, 0, 0.6);
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.7);
             border: 1px solid rgba(76, 175, 80, 0.3);
         }
         
-        .point-form {
+        .tool-container {
             position: absolute;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
             background: rgba(15, 30, 60, 0.95);
             border-radius: 15px;
-            padding: 25px;
+            padding: 20px;
             width: 90%;
-            max-width: 400px;
+            max-width: 380px;
             z-index: 2000;
-            box-shadow: 0 0 30px rgba(0, 0, 0, 0.8);
-            backdrop-filter: blur(10px);
+            box-shadow: 0 12px 35px rgba(0, 0, 0, 0.9);
+            backdrop-filter: blur(15px);
             display: none;
-            border: 1px solid rgba(76, 175, 80, 0.4);
+            border: 1px solid rgba(76, 175, 80, 0.5);
+        }
+        
+        .tool-tabs {
+            display: flex;
+            margin-bottom: 15px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .tool-tab {
+            flex: 1;
+            text-align: center;
+            padding: 10px;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: var(--transition);
+        }
+        
+        .tool-tab.active {
+            border-bottom: 2px solid var(--accent-color);
+            color: var(--accent-color);
+        }
+        
+        .tool-content {
+            display: none;
+        }
+        
+        .tool-content.active {
+            display: block;
         }
         
         .form-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 20px;
-            padding-bottom: 10px;
-            border-bottom: 1px solid #4CAF50;
+            margin-bottom: 18px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--accent-color);
         }
         
         .form-header h2 {
-            color: #4CAF50;
+            color: var(--accent-color);
             display: flex;
             align-items: center;
             gap: 10px;
+            font-size: 1.3rem;
         }
         
         .close-form {
             background: none;
             border: none;
             color: #fff;
-            font-size: 1.5rem;
+            font-size: 1.3rem;
             cursor: pointer;
-            transition: all 0.3s ease;
+            transition: var(--transition);
         }
         
         .close-form:hover {
-            color: #ff4b2b;
+            color: var(--error-color);
             transform: scale(1.1);
         }
         
         .form-group {
-            margin-bottom: 20px;
+            margin-bottom: 15px;
             position: relative;
         }
         
         .form-group label {
             display: block;
             margin-bottom: 8px;
-            color: #4CAF50;
+            color: var(--accent-color);
             font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.9rem;
         }
         
         .form-group input, 
-        .form-group textarea {
+        .form-group textarea,
+        .form-group select {
             width: 100%;
-            padding: 12px;
+            padding: 10px;
             border-radius: 8px;
             border: 1px solid rgba(76, 175, 80, 0.3);
             background: rgba(255, 255, 255, 0.08);
             color: #fff;
-            font-size: 1rem;
+            font-size: 0.9rem;
+            transition: var(--transition);
         }
         
         .form-group input:focus, 
-        .form-group textarea:focus {
+        .form-group textarea:focus,
+        .form-group select:focus {
             outline: none;
-            border-color: #4CAF50;
-            box-shadow: 0 0 10px rgba(76, 175, 80, 0.3);
+            border-color: var(--accent-color);
+            box-shadow: 0 0 12px rgba(76, 175, 80, 0.3);
         }
         
         .form-group textarea {
@@ -328,9 +537,13 @@
             border-radius: 8px;
             font-weight: bold;
             cursor: pointer;
-            transition: all 0.3s ease;
-            font-size: 1.1rem;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+            transition: var(--transition);
+            font-size: 0.95rem;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
         }
         
         .form-submit:hover {
@@ -340,55 +553,114 @@
         
         .map-controls {
             position: absolute;
-            bottom: 30px;
-            right: 30px;
+            bottom: 25px;
+            right: 25px;
             z-index: 1000;
             display: flex;
             flex-direction: column;
-            gap: 10px;
+            gap: 12px;
         }
         
         .control-btn {
-            width: 50px;
-            height: 50px;
+            width: 48px;
+            height: 48px;
             border-radius: 50%;
             background: rgba(15, 30, 60, 0.9);
             color: white;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.3rem;
+            font-size: 1.2rem;
             cursor: pointer;
-            box-shadow: 0 0 15px rgba(0, 0, 0, 0.6);
-            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.7);
+            transition: var(--transition);
             border: 1px solid rgba(76, 175, 80, 0.3);
         }
         
         .control-btn:hover {
             background: rgba(76, 175, 80, 0.8);
             transform: scale(1.1);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.8);
+        }
+        
+        .minimized-tool {
+            position: absolute;
+            z-index: 1000;
+            background: rgba(15, 30, 60, 0.9);
+            border-radius: 50%;
+            width: 45px;
+            height: 45px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.7);
+            border: 1px solid rgba(76, 175, 80, 0.4);
+            transition: var(--transition);
+        }
+        
+        .minimized-tool:hover {
+            transform: scale(1.1);
+            background: rgba(76, 175, 80, 0.7);
+        }
+        
+        .minimized-tool i {
+            font-size: 1.2rem;
         }
         
         .toast {
             position: fixed;
-            bottom: 20px;
-            right: 20px;
+            bottom: 25px;
+            right: 25px;
             background: rgba(15, 30, 60, 0.95);
             color: white;
             padding: 15px 25px;
-            border-radius: 8px;
+            border-radius: 10px;
             transform: translateX(150%);
-            transition: transform 0.3s ease;
+            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
             z-index: 2000;
-            box-shadow: 0 0 20px rgba(0, 0, 0, 0.7);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.8);
             border: 1px solid rgba(76, 175, 80, 0.4);
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 12px;
+            max-width: 350px;
         }
         
         .toast.show {
             transform: translateX(0);
+        }
+        
+        .toast-icon {
+            font-size: 1.6rem;
+        }
+        
+        .toast-content {
+            flex: 1;
+        }
+        
+        .toast-title {
+            font-weight: bold;
+            margin-bottom: 4px;
+            font-size: 1rem;
+        }
+        
+        .toast-message {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+        
+        .close-toast {
+            background: none;
+            border: none;
+            color: rgba(255, 255, 255, 0.7);
+            cursor: pointer;
+            font-size: 1.1rem;
+            transition: var(--transition);
+        }
+        
+        .close-toast:hover {
+            color: white;
         }
         
         /* Colors for layers */
@@ -398,6 +670,7 @@
         .ecosistemas-color { background: linear-gradient(135deg, #56ab2f, #a8e063); }
         .medios-vida-color { background: linear-gradient(135deg, #2193b0, #6dd5ed); }
         .sitio-color { background: linear-gradient(135deg, #FFD700, #FFA500); }
+        .vias-color { background: linear-gradient(135deg, #a8a8a8, #6c6c6c); }
         
         /* Custom cursor for add point mode */
         .add-point-cursor {
@@ -415,6 +688,25 @@
             animation: pulse 2s infinite;
         }
         
+        /* Estilos para etiquetas de sitio */
+        .site-label {
+            font-weight: bold;
+            color: black;
+            background: rgba(255, 255, 255, 0.85);
+            padding: 4px 8px;
+            border-radius: 4px;
+            border: 1px solid rgba(0, 0, 0, 0.2);
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+            white-space: nowrap;
+            text-align: center;
+            transform: translateY(-50%);
+        }
+        
+        .site-label:hover {
+            background: rgba(255, 255, 255, 0.95);
+            z-index: 1000;
+        }
+        
         .add-another-container {
             margin-top: 15px;
             text-align: center;
@@ -423,78 +715,104 @@
         .add-another-btn {
             background: none;
             border: none;
-            color: #6dd5ed;
+            color: var(--accent-light);
             cursor: pointer;
-            font-size: 0.9rem;
+            font-size: 0.85rem;
             text-decoration: underline;
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 5px;
+            gap: 6px;
             margin: 0 auto;
+            transition: var(--transition);
         }
         
         .add-another-btn:hover {
-            color: #4CAF50;
+            color: var(--accent-color);
         }
         
         .instructions-content {
-            margin-top: 10px;
-            font-size: 0.95rem;
+            margin-top: 8px;
+            font-size: 0.85rem;
             line-height: 1.5;
             overflow: hidden;
             max-height: 0;
             transition: max-height 0.3s ease;
+            padding-left: 24px;
         }
         
         .instructions-content.active {
-            max-height: 200px;
+            max-height: 180px;
+        }
+        
+        .instructions-content p {
+            margin-bottom: 8px;
+        }
+        
+        .instructions-content li {
+            margin-bottom: 6px;
+            margin-left: 18px;
+            font-size: 0.85rem;
         }
         
         .search-container {
             position: absolute;
-            top: 20px;
-            right: 20px;
+            top: 15px;
+            right: 15px;
             z-index: 1000;
-            background: rgba(15, 30, 60, 0.85);
-            border-radius: 10px;
-            padding: 10px;
+            background: rgba(15, 30, 60, 0.9);
+            border-radius: 50px;
+            padding: 4px;
             backdrop-filter: blur(5px);
-            border: 1px solid rgba(76, 175, 80, 0.3);
-            box-shadow: 0 0 15px rgba(0, 0, 0, 0.5);
-            max-width: 300px;
+            border: 1px solid rgba(76, 175, 80, 0.4);
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.5);
+            max-width: 320px;
             width: 100%;
+            display: flex;
         }
         
         .search-input {
-            width: 100%;
-            padding: 10px 15px;
-            border-radius: 8px;
-            border: 1px solid rgba(76, 175, 80, 0.3);
+            flex: 1;
+            padding: 10px 18px;
+            border-radius: 50px;
+            border: none;
             background: rgba(255, 255, 255, 0.1);
             color: white;
             font-size: 0.9rem;
+            padding-right: 45px;
         }
         
         .search-input:focus {
             outline: none;
-            border-color: #4CAF50;
+            background: rgba(255, 255, 255, 0.15);
+        }
+        
+        .search-btn {
+            background: none;
+            border: none;
+            color: white;
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            cursor: pointer;
+            font-size: 1.1rem;
         }
         
         .points-table-container {
             position: absolute;
-            bottom: 30px;
-            left: 20px;
+            bottom: 110px;
+            left: 15px;
             z-index: 1000;
-            background: rgba(15, 30, 60, 0.85);
-            border-radius: 10px;
+            background: rgba(15, 30, 60, 0.9);
+            border-radius: 12px;
             padding: 15px;
             backdrop-filter: blur(5px);
-            border: 1px solid rgba(76, 175, 80, 0.3);
-            box-shadow: 0 0 15px rgba(0, 0, 0, 0.5);
-            max-height: 200px;
+            border: 1px solid rgba(76, 175, 80, 0.4);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.7);
+            max-height: 280px;
             overflow-y: auto;
-            max-width: 350px;
+            max-width: 360px;
             width: 100%;
             display: none;
         }
@@ -508,11 +826,15 @@
             padding: 8px 10px;
             text-align: left;
             border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            font-size: 0.85rem;
         }
         
         .points-table th {
-            color: #4CAF50;
+            color: var(--accent-color);
             font-size: 0.9rem;
+            position: sticky;
+            top: 0;
+            background: rgba(15, 30, 60, 0.9);
         }
         
         .points-table tr:hover {
@@ -523,12 +845,15 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 10极px;
+            margin-bottom: 12px;
         }
         
         .table-header h3 {
-            color: #4CAF50;
+            color: var(--accent-color);
             font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
         
         .close-table {
@@ -536,6 +861,7 @@
             border: none;
             color: white;
             cursor: pointer;
+            font-size: 1.1rem;
         }
         
         .export-options {
@@ -544,15 +870,15 @@
             left: 50%;
             transform: translate(-50%, -50%);
             background: rgba(15, 30, 60, 0.95);
-            border-radius: 15px;
+            border-radius: 18px;
             padding: 25px;
             width: 90%;
-            max-width: 350px;
+            max-width: 420px;
             z-index: 2000;
-            box-shadow: 0 0 30px rgba(0, 0, 0, 0.8);
-            backdrop-filter: blur(10px);
+            box-shadow: 0 18px 45px rgba(0, 0, 0, 0.9);
+            backdrop-filter: blur(15px);
             display: none;
-            border: 1px solid rgba(76, 175, 80, 0.4);
+            border: 1px solid rgba(76, 175, 80, 0.5);
         }
         
         .export-header {
@@ -560,61 +886,212 @@
             justify-content: space-between;
             align-items: center;
             margin-bottom: 20px;
-            padding-bottom: 10px;
-            border-bottom: 1px solid #4CAF50;
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--accent-color);
         }
         
         .export-options h2 {
-            color: #4CAF50;
+            color: var(--accent-color);
             display: flex;
             align-items: center;
             gap: 10px;
+            font-size: 1.4rem;
+        }
+        
+        .export-options p {
+            margin-bottom: 18px;
+            opacity: 0.9;
+            line-height: 1.5;
+            font-size: 0.95rem;
+        }
+        
+        .export-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+            gap: 12px;
         }
         
         .export-option {
             display: flex;
+            flex-direction: column;
             align-items: center;
-            margin-bottom: 15px;
-            padding: 10px;
-            border-radius: 8px;
+            padding: 18px 12px;
+            border-radius: 10px;
             background: rgba(255, 255, 255, 0.08);
             cursor: pointer;
-            transition: all 0.3s ease;
+            transition: var(--transition);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            text-align: center;
         }
         
         .export-option:hover {
             background: rgba(76, 175, 80, 0.2);
+            transform: translateY(-4px);
+            border-color: rgba(76, 175, 80, 0.3);
         }
         
         .export-option i {
-            margin-right: 10px;
-            font-size: 1.2rem;
-            width: 30px;
-            text-align: center;
+            font-size: 2.2rem;
+            margin-bottom: 12px;
+            color: var(--accent-light);
         }
         
         .error-message {
-            color: #ff4b2b;
+            color: var(--error-color);
             font-size: 0.8rem;
-            margin-top: 5px;
+            margin-top: 6px;
             display: none;
+            padding-left: 4px;
         }
         
         .credits {
-            margin-top: 20px;
-            padding-top: 15px;
+            margin-top: 15px;
+            padding-top: 12px;
             border-top: 1px solid rgba(255, 255, 255, 0.1);
             text-align: center;
-            font-size: 0.85rem;
+            font-size: 0.8rem;
             color: rgba(255, 255, 255, 0.7);
         }
         
-        @media (max-width: 768px) {
-            .container {
-                flex-direction: column;
-                padding: 10px;
-            }
-            
+        .loading-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(15, 30, 60, 0.95);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 3000;
+            transition: opacity 0.5s ease;
+        }
+        
+        .spinner {
+            width: 55px;
+            height: 55px;
+            border: 5px solid rgba(76, 175, 80, 0.3);
+            border-top: 5px solid var(--accent-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .loading-text {
+            font-size: 1.1rem;
+            letter-spacing: 1px;
+            text-align: center;
+            max-width: 280px;
+            line-height: 1.6;
+        }
+        
+        .loading-dots::after {
+            content: '';
+            animation: dots 1.5s infinite;
+        }
+        
+        @keyframes dots {
+            0%, 20% { content: '.'; }
+            40% { content: '..'; }
+            60%, 100% { content: '...'; }
+        }
+        
+        .login-modal {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(15, 30, 60, 0.95);
+            border-radius: 18px;
+            padding: 35px;
+            width: 90%;
+            max-width: 420px;
+            z-index: 2500;
+            box-shadow: 0 18px 45px rgba(0, 0, 0, 0.9);
+            backdrop-filter: blur(15px);
+            display: none;
+            border: 1px solid rgba(76, 175, 80, 0.5);
+            text-align: center;
+        }
+        
+        .login-modal h2 {
+            color: var(--accent-color);
+            margin-bottom: 20px;
+            font-size: 1.6rem;
+        }
+        
+        .login-modal p {
+            margin-bottom: 20px;
+            line-height: 1.6;
+            opacity: 0.9;
+            font-size: 0.95rem;
+        }
+        
+        .login-form {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        
+        .form-footer {
+            margin-top: 20px;
+            font-size: 0.85rem;
+            opacity: 0.8;
+        }
+        
+        .particles {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            overflow: hidden;
+        }
+        
+        .particle {
+            position: absolute;
+            border-radius: 50%;
+            background: rgba(76, 175, 80, 0.15);
+            animation: float 15s infinite linear;
+        }
+        
+        @keyframes float {
+            0% { transform: translateY(0) translateX(0) rotate(0deg); opacity: 0; }
+            10% { opacity: 1; }
+            90% { opacity: 0.5; }
+            100% { transform: translateY(-1000px) translateX(1000px) rotate(720deg); opacity: 0; }
+        }
+        
+        .print-mode .sidebar,
+        .print-mode .map-controls,
+        .print-mode .position-indicator,
+        .print-mode .search-container,
+        .print-mode .stats-panel {
+            display: none;
+        }
+        
+        .print-mode .map-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border-radius: 0;
+            z-index: 10000;
+        }
+        
+        .print-mode #map {
+            border-radius: 0;
+        }
+        
+        @media (max-width: 992px) {
             .sidebar {
                 position: absolute;
                 left: -100%;
@@ -622,7 +1099,7 @@
                 bottom: 0;
                 z-index: 1000;
                 width: 85%;
-                padding-top: 60px;
+                padding-top: 65px;
             }
             
             .sidebar.active {
@@ -640,56 +1117,116 @@
             }
             
             .map-controls {
-                bottom: 20px;
-                right: 20px;
+                bottom: 15px;
+                right: 15px;
             }
             
             .position-indicator {
-                top: 80px;
-                left: 10px;
-                right: 10px;
+                top: 70px;
+                left: 8px;
+                right: 8px;
                 max-width: none;
             }
             
-            .layer-actions {
-                flex-direction: column;
+            .stats-panel {
+                bottom: 80px;
+                left: 15px;
+                right: 15px;
+                transform: none;
+                max-width: none;
+                justify-content: flex-start;
             }
             
-            .point-form {
+            .tool-container {
                 width: 95%;
                 padding: 15px;
             }
             
             .search-container {
-                top: 80px;
-                left: 10px;
-                right: 10px;
+                top: 70px;
+                left: 8px;
+                right: 8px;
                 max-width: none;
             }
             
             .points-table-container {
-                max-height: 150px;
+                max-height: 220px;
                 max-width: 90%;
                 left: 50%;
                 transform: translateX(-50%);
+                bottom: 130px;
+            }
+            
+            .layer-actions {
+                flex-direction: column;
+            }
+        }
+        
+        @media (max-width: 576px) {
+            .app-container {
+                padding: 8px;
+            }
+            
+            .position-indicator {
+                padding: 12px;
+            }
+            
+            .stats-panel {
+                gap: 8px;
+                padding: 10px 12px;
+            }
+            
+            .stat-card {
+                min-width: 90px;
+                padding: 6px 8px;
+            }
+            
+            .stat-number {
+                font-size: 1.4rem;
+            }
+            
+            .map-controls .control-btn {
+                width: 45px;
+                height: 45px;
+                font-size: 1.1rem;
+            }
+            
+            .tool-container {
+                padding: 15px 12px;
             }
         }
     </style>
 </head>
 <body>
-    <div class="container">
+    <div class="loading-overlay" id="loading-overlay">
+        <div class="spinner"></div>
+        <p class="loading-text">Cargando Geoportal Tumaco<span class="loading-dots"></span></p>
+    </div>
+    
+    <div class="particles" id="particles"></div>
+    
+    <div class="app-container">
         <div class="sidebar">
             <div class="header">
                 <h1><i class="fas fa-map-marked-alt"></i> Geoportal Tumaco</h1>
-                <p>Visualización de datos geoespaciales - Tumaco, Colombia</p>
+                <p>Visualización avanzada de datos geoespaciales</p>
+                
+                <div class="user-controls">
+                    <button class="user-btn" id="print-btn"><i class="fas fa-print"></i> Imprimir</button>
+                </div>
             </div>
             
             <div class="layers-section">
+                <input type="text" class="search-layers" id="search-layers" placeholder="Buscar capas...">
+                
                 <h2 class="section-title"><i class="fas fa-layer-group"></i> Capas GeoJSON</h2>
-                <ul class="layer-list">
+                <ul class="layer-list" id="layer-list">
                     <li class="layer-item" data-layer="amenaza">
                         <div class="layer-icon amenaza-color"><i class="fas fa-skull-crossbones"></i></div>
-                        <div class="layer-name">PARES Amenaza</div>
+                        <div class="layer-content">
+                            <div class="layer-name">PARES Amenaza</div>
+                            <div class="layer-desc">Zonas de riesgo natural</div>
+                        </div>
                         <div class="layer-actions">
                             <button class="action-btn export-layer-btn" data-layer="amenaza" title="Exportar capa">
                                 <i class="fas fa-download"></i>
@@ -698,7 +1235,10 @@
                     </li>
                     <li class="layer-item" data-layer="se_amenaza">
                         <div class="layer-icon se-amenaza-color"><i class="fas fa-radiation"></i></div>
-                        <div class="layer-name">PARES SE Amenaza</div>
+                        <div class="layer-content">
+                            <div class="layer-name">PARES SE Amenaza</div>
+                            <div class="layer-desc">Zonas de riesgo social</div>
+                        </div>
                         <div class="layer-actions">
                             <button class="action-btn export-layer-btn" data-layer="se_amenaza" title="Exportar capa">
                                 <i class="fas fa-download"></i>
@@ -707,7 +1247,10 @@
                     </li>
                     <li class="layer-item" data-layer="conflicto">
                         <div class="layer-icon conflicto-color"><i class="fas fa-handshake-slash"></i></div>
-                        <div class="layer-name">PARES Conflicto</div>
+                        <div class="layer-content">
+                            <div class="layer-name">PARES Conflicto</div>
+                            <div class="layer-desc">Áreas de conflicto</div>
+                        </div>
                         <div class="layer-actions">
                             <button class="action-btn export-layer-btn" data-layer="conflicto" title="Exportar capa">
                                 <i class="fas fa-download"></i>
@@ -716,7 +1259,10 @@
                     </li>
                     <li class="layer-item" data-layer="ecosistemas">
                         <div class="layer-icon ecosistemas-color"><i class="fas fa-leaf"></i></div>
-                        <div class="layer-name">PARES Ecosistemas</div>
+                        <div class="layer-content">
+                            <div class="layer-name">PARES Ecosistemas</div>
+                            <div class="layer-desc">Ecosistemas protegidos</div>
+                        </div>
                         <div class="layer-actions">
                             <button class="action-btn export-layer-btn" data-layer="ecosistemas" title="Exportar capa">
                                 <i class="fas fa-download"></i>
@@ -725,7 +1271,10 @@
                     </li>
                     <li class="layer-item" data-layer="medios_vida">
                         <div class="layer-icon medios-vida-color"><i class="fas fa-hand-holding-heart"></i></div>
-                        <div class="layer-name">PARES Medios de Vida</div>
+                        <div class="layer-content">
+                            <div class="layer-name">PARES Medios de Vida</div>
+                            <div class="layer-desc">Recursos comunitarios</div>
+                        </div>
                         <div class="layer-actions">
                             <button class="action-btn export-layer-btn" data-layer="medios_vida" title="Exportar capa">
                                 <i class="fas fa-download"></i>
@@ -734,10 +1283,25 @@
                     </li>
                     <li class="layer-item" data-layer="sitio">
                         <div class="layer-icon sitio-color"><i class="fas fa-landmark"></i></div>
-                        <div class="layer-name">Sitio</div>
+                        <div class="layer-content">
+                            <div class="layer-name">Sitio</div>
+                            <div class="layer-desc">Puntos de interés con etiquetas</div>
+                        </div>
                         <div class="layer-actions">
                             <button class="action-btn export-layer-btn" data-layer="sitio" title="Exportar capa">
                                 <i class="fas fa-download"></i>
+                            </button>
+                        </div>
+                    </li>
+                    <li class="layer-item" data-layer="vias_consejo">
+                        <div class="layer-icon vias-color"><i class="fas fa-road"></i></div>
+                        <div class="layer-content">
+                            <div class="layer-name">Vías Consejo</div>
+                            <div class="layer-desc">Red vial principal</div>
+                        </div>
+                        <div class="layer-actions">
+                            <button class="action-btn" title="Ver detalles" id="show-vias-details">
+                                <i class="fas fa-info-circle"></i>
                             </button>
                         </div>
                     </li>
@@ -749,19 +1313,18 @@
                     <i class="fas fa-chevron-right"></i> <i class="fas fa-info-circle"></i> Instrucciones
                 </h2>
                 <div class="instructions-content active">
-                    <p>
-                        1. Selecciona una capa para activarla<br>
-                        2. Haz clic en el mapa para marcar un punto<br>
-                        3. Completa los detalles del punto<br>
-                        4. Para editar: haz clic en un punto existente<br>
-                        5. Exporta la capa con todos los puntos recolectados<br>
-                        6. Usa la barra de búsqueda para ubicar lugares
-                    </p>
+                    <ol>
+                        <li>Selecciona una capa para activarla</li>
+                        <li>Haz clic en el mapa para marcar un punto</li>
+                        <li>Para sitios, el nombre aparecerá como etiqueta en el mapa</li>
+                        <li>Usa los botones para minimizar/restaurar formularios</li>
+                        <li>Exporta la capa con todos los puntos recolectados</li>
+                    </ol>
                 </div>
             </div>
             
             <div class="credits">
-                Elaborado por Diego Castaño, Esp SIG, 2025
+                Elaborado por Diego Castaño, Esp SIG, 2025 | Etiquetas de Sitio
             </div>
         </div>
         
@@ -774,26 +1337,58 @@
                 </div>
                 <div class="position-data">
                     <div class="position-item">
-                        <span class="position-label">Latitud:</span>
+                        <span class="position-label"><i class="fas fa-latitude"></i> Latitud:</span>
                         <span class="position-value" id="current-lat">1.8067°</span>
                     </div>
                     <div class="position-item">
-                        <span class="position-label">Longitud:</span>
+                        <span class="position-label"><i class="fas fa-longitude"></i> Longitud:</span>
                         <span class="position-value" id="current-lng">-78.7647°</span>
                     </div>
                     <div class="position-item">
-                        <span class="position-label">Capa activa:</span>
+                        <span class="position-label"><i class="fas fa-layer-group"></i> Capa activa:</span>
                         <span class="position-value" id="active-layer">Ninguna</span>
                     </div>
                     <div class="position-item">
-                        <span class="position-label">Puntos:</span>
+                        <span class="position-label"><i class="fas fa-map-marker"></i> Puntos:</span>
                         <span class="position-value" id="points-count">0</span>
                     </div>
+                </div>
+                <div class="stats-container">
+                    <div class="stats-grid">
+                        <div class="stat-item">
+                            <div class="stat-value" id="total-points">0</div>
+                            <div class="stat-label">Puntos totales</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value" id="today-points">0</div>
+                            <div class="stat-label">Hoy</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="stats-panel">
+                <div class="stat-card">
+                    <div class="stat-number" id="amenaza-count">0</div>
+                    <div class="stat-label">Amenazas</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="conflicto-count">0</div>
+                    <div class="stat-label">Conflictos</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="ecosistemas-count">0</div>
+                    <div class="stat-label">Ecosistemas</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="sitio-count">0</div>
+                    <div class="stat-label">Sitios</div>
                 </div>
             </div>
             
             <div class="search-container">
                 <input type="text" class="search-input" id="search-input" placeholder="Buscar ubicación...">
+                <button class="search-btn" id="search-btn"><i class="fas fa-search"></i></button>
             </div>
             
             <div class="points-table-container" id="points-table">
@@ -807,6 +1402,7 @@
                             <th>ID</th>
                             <th>Nombre</th>
                             <th>Capa</th>
+                            <th>Fecha</th>
                         </tr>
                     </thead>
                     <tbody id="points-table-body">
@@ -815,31 +1411,81 @@
                 </table>
             </div>
             
-            <div class="point-form" id="point-form">
-                <div class="form-header">
-                    <h2><i class="fas fa-map-marker-alt"></i> <span id="form-title">Detalles del Punto</span></h2>
-                    <button class="close-form" id="close-form"><i class="fas fa-times"></i></button>
+            <!-- Contenedor unificado para herramientas -->
+            <div class="tool-container" id="tool-container">
+                <div class="tool-tabs">
+                    <div class="tool-tab active" data-tab="form"><i class="fas fa-map-marker-alt"></i> Punto</div>
+                    <div class="tool-tab" data-tab="export"><i class="fas fa-file-export"></i> Exportar</div>
+                    <div class="tool-tab" data-tab="info"><i class="fas fa-info-circle"></i> Info</div>
                 </div>
-                <div class="form-group">
-                    <label for="point-id"><i class="fas fa-id-card"></i> ID del Punto *</label>
-                    <input type="text" id="point-id" placeholder="Ingrese el ID único">
-                    <div class="error-message" id="id-error">El ID es obligatorio</div>
-                </div>
-                <div class="form-group">
-                    <label for="point-name"><i class="fas fa-tag"></i> Nombre del Punto *</label>
-                    <input type="text" id="point-name" placeholder="Ingrese el nombre descriptivo">
-                    <div class="error-message" id="name-error">El nombre es obligatorio</div>
-                </div>
-                <div class="form-group">
-                    <label for="point-description"><i class="fas fa-align-left"></i> Descripción</label>
-                    <textarea id="point-description" placeholder="Ingrese una descripción detallada"></textarea>
-                </div>
-                <button class="form-submit" id="save-point"><i class="fas fa-save"></i> <span id="save-btn-text">Guardar Punto</span></button>
                 
-                <div class="add-another-container">
-                    <button class="add-another-btn" id="add-another-btn">
-                        <i class="fas fa-plus-circle"></i> Agregar otro punto
-                    </button>
+                <!-- Contenido del formulario -->
+                <div class="tool-content active" id="form-content">
+                    <div class="form-header">
+                        <h2>Detalles del Punto</h2>
+                        <div>
+                            <button class="minimize-form" id="minimize-form" title="Minimizar"><i class="fas fa-window-minimize"></i></button>
+                            <button class="close-form" id="close-form"><i class="fas fa-times"></i></button>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="point-id"><i class="fas fa-id-card"></i> ID del Punto *</label>
+                        <input type="text" id="point-id" placeholder="ID único">
+                        <div class="error-message" id="id-error">El ID es obligatorio y único</div>
+                    </div>
+                    <div class="form-group">
+                        <label for="point-name"><i class="fas fa-tag"></i> Nombre *</label>
+                        <input type="text" id="point-name" placeholder="Nombre descriptivo">
+                        <div class="error-message" id="name-error">El nombre es obligatorio</div>
+                    </div>
+                    <div class="form-group">
+                        <label for="point-category"><i class="fas fa-list"></i> Categoría</label>
+                        <select id="point-category">
+                            <option value="">Seleccionar</option>
+                            <option value="riesgo">Riesgo</option>
+                            <option value="recurso">Recurso</option>
+                            <option value="infraestructura">Infraestructura</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="point-description"><i class="fas fa-align-left"></i> Descripción</label>
+                        <textarea id="point-description" placeholder="Descripción detallada"></textarea>
+                    </div>
+                    <button class="form-submit" id="save-point"><i class="fas fa-save"></i> Guardar Punto</button>
+                </div>
+                
+                <!-- Contenido de exportación -->
+                <div class="tool-content" id="export-content">
+                    <div class="form-header">
+                        <h2>Exportar Capa</h2>
+                        <button class="close-form" id="close-export"><i class="fas fa-times"></i></button>
+                    </div>
+                    <p>Seleccione el formato de exportación:</p>
+                    <div class="export-grid">
+                        <div class="export-option" data-format="geojson">
+                            <i class="fas fa-file-code"></i>
+                            <div>GeoJSON</div>
+                        </div>
+                        <div class="export-option" data-format="csv">
+                            <i class="fas fa-file-csv"></i>
+                            <div>CSV</div>
+                        </div>
+                        <div class="export-option" data-format="kml">
+                            <i class="fas fa-file-alt"></i>
+                            <div>KML</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Contenido de información -->
+                <div class="tool-content" id="info-content">
+                    <div class="form-header">
+                        <h2>Información de Capa</h2>
+                        <button class="close-form" id="close-info"><i class="fas fa-times"></i></button>
+                    </div>
+                    <div id="layer-info-content">
+                        <p>Seleccione una capa para ver información detallada.</p>
+                    </div>
                 </div>
             </div>
         </div>
@@ -847,681 +1493,926 @@
         <div class="map-controls">
             <div class="control-btn" id="zoom-in"><i class="fas fa-plus"></i></div>
             <div class="control-btn" id="zoom-out"><i class="fas fa-minus"></i></div>
-            <div class="control-btn" id="locate-me"><i class="fas fa-location-arrow"></极i></div>
+            <div class="control-btn" id="locate-me"><i class="fas fa-location-arrow"></i></div>
             <div class="control-btn" id="full-extent"><i class="fas fa-globe-americas"></i></div>
+            <div class="control-btn" id="show-form"><i class="fas fa-edit"></i></div>
             <div class="control-btn" id="show-points"><i class="fas fa-table"></i></div>
         </div>
     </div>
     
     <button class="mobile-menu-btn" id="menu-toggle"><i class="fas fa-bars"></i></button>
     
-    <div class="toast" id="toast">
-        <i class="fas fa-check-circle"></i> <span id="toast-message">Punto agregado exitosamente!</span>
+    <!-- Formulario minimizado -->
+    <div class="minimized-tool" id="minimized-form" style="display: none; bottom: 100px; right: 100px;">
+        <i class="fas fa-map-marker-alt"></i>
     </div>
-
-    <div class="export-options" id="export-options">
-        <div class="export-header">
-            <h2><i class="fas fa-file-export"></i> Exportar Capa</h2>
-            <button class="close-form" id="close-export"><i class="fas fa-times"></i></button>
+    
+    <div class="toast" id="toast">
+        <div class="toast-icon">
+            <i class="fas fa-check-circle"></i>
         </div>
-        <p>Seleccione el formato de exportación:</p>
-        <div class="export-option" data-format="geojson">
-            <i class="fas fa-file-code"></i>
-            <div>
-                <strong>GeoJSON</strong>
-                <p>Formato estándar para datos espaciales</p>
-            </div>
+        <div class="toast-content">
+            <div class="toast-title">Éxito</div>
+            <div class="toast-message" id="toast-message">Punto agregado exitosamente!</div>
         </div>
-        <div class="export-option" data-format="csv">
-            <i class="fas fa-file-csv"></i>
-            <div>
-                <strong>CSV</strong>
-                <p>Formato de hoja de cálculo</p>
-            </div>
-        </div>
-        <div class="export-option" data-format="kml">
-            <i class="fas fa-file-alt"></i>
-            <div>
-                <strong>KML</strong>
-                <p>Formato para Google Earth</p>
-            </div>
-        </div>
+        <button class="close-toast" id="close-toast"><i class="fas fa-times"></i></button>
     </div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
-        // Initialize map with Tumaco coordinates
-        const map = L.map('map', {
-            center: [1.8067, -78.7647],
-            zoom: 12,
-            zoomControl: false
-        });
-        
-        // Add ESRI base maps
-        const esriWorldImagery = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-            attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
-        }).addTo(map);
-        
-        // Layer groups for GeoJSON data
-        const layers = {
-            amenaza: L.layerGroup(),
-            se_amenaza: L.layerGroup(),
-            conflicto: L.layerGroup(),
-            ecosistemas: L.layerGroup(),
-            medios_vida: L.layerGroup(),
-            sitio: L.layerGroup()
-        };
-        
-        // Store all collected points
-        const collectedPoints = {
-            amenaza: [],
-            se_amenaza: [],
-            conflicto: [],
-            ecosistemas: [],
-            medios_vida: [],
-            sitio: []
-        };
-        
-        // Store markers for editing
-        const markers = {
-            amenaza: [],
-            se_amenaza: [],
-            conflicto: [],
-            ecosistemas: [],
-            medios_vida: [],
-            sitio: []
-        };
-        
-        // Add layer groups to map
-        Object.values(layers).forEach(layer => layer.addTo(map));
-        
-        // Custom icons for different point types
-        const icons = {
-            amenaza: L.divIcon({
-                className: 'custom-icon',
-                html: '<div class="icon-inner amenaza-color"><i class="fas fa-skull-crossbones"></i></div>',
-                iconSize: [36, 36],
-                iconAnchor: [18, 36]
-            }),
-            se_amenaza: L.divIcon({
-                className: 'custom-icon',
-                html: '<div class="icon-inner se-amenaza-color"><i class="fas fa-radiation"></i></div>',
-                iconSize: [36, 36],
-                iconAnchor: [18, 36]
-            }),
-            conflicto: L.divIcon({
-                className: 'custom-icon',
-                html: '<div class="icon-inner conflicto-color"><i class="fas fa-handshake-slash"></i></div>',
-                iconSize: [36, 36],
-                iconAnchor: [18, 36]
-            }),
-            ecosistemas: L.divIcon({
-                className: 'custom-icon',
-                html: '<div class="icon-inner ecosistemas-color"><i class="fas fa-leaf"></i></div>',
-                iconSize: [36, 36],
-                iconAnchor: [18, 36]
-            }),
-            medios_vida: L.divIcon({
-                className: 'custom-icon',
-                html: '<div class="icon-inner medios-vida-color"><i class="fas fa-hand-holding-heart"></i></div>',
-                iconSize: [36, 36],
-                iconAnchor: [18, 36]
-            }),
-            sitio: L.divIcon({
-                className: 'custom-icon',
-                html: '<div class="icon-inner sitio-color"><i class="fas fa-landmark"></i></div>',
-                iconSize: [36, 36],
-                iconAnchor: [18, 36]
-            })
-        };
-        
-        // State variables
-        let activeLayer = null;
-        let newPointPosition = null;
-        let editingPoint = null;
-        let currentExportLayer = null;
-        
-        // Toggle instructions visibility
-        document.getElementById('instructions-toggle').addEventListener('click', function() {
-            this.classList.toggle('active');
-            document.querySelector('.instructions-content').classList.toggle('active');
-        });
-        
-        // Layer activation functionality
-        document.querySelectorAll('.layer-item').forEach(item => {
-            item.addEventListener('click', function() {
-                const layerName = this.getAttribute('data-layer');
+        class GeoportalTumaco {
+            constructor() {
+                this.map = null;
+                this.layers = {};
+                this.collectedPoints = {
+                    amenaza: [],
+                    se_amenaza: [],
+                    conflicto: [],
+                    ecosistemas: [],
+                    medios_vida: [],
+                    sitio: []
+                };
+                this.markers = {
+                    amenaza: [],
+                    se_amenaza: [],
+                    conflicto: [],
+                    ecosistemas: [],
+                    medios_vida: [],
+                    sitio: []
+                };
+                this.activeLayer = null;
+                this.newPointPosition = null;
+                this.editingPoint = null;
+                this.totalPoints = 0;
+                this.todayPoints = 0;
+                this.minimizedTools = {};
+                this.init();
+            }
+
+            init() {
+                this.initializeMap();
+                this.setupEventListeners();
+                this.loadPointsFromLocalStorage();
+                this.loadViasConsejo();
+                this.makeFormDraggable();
+                this.updateStatistics();
+            }
+
+            initializeMap() {
+                this.map = L.map('map', {
+                    center: [1.8067, -78.7647],
+                    zoom: 12,
+                    zoomControl: false
+                });
                 
-                // Remove active class from all items
+                const esriWorldImagery = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+                    attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
+                }).addTo(this.map);
+                
+                this.layers = {
+                    amenaza: L.layerGroup().addTo(this.map),
+                    se_amenaza: L.layerGroup().addTo(this.map),
+                    conflicto: L.layerGroup().addTo(this.map),
+                    ecosistemas: L.layerGroup().addTo(this.map),
+                    medios_vida: L.layerGroup().addTo(this.map),
+                    sitio: L.layerGroup().addTo(this.map),
+                    vias_consejo: L.layerGroup().addTo(this.map)
+                };
+                
+                const center = this.map.getCenter();
+                document.getElementById('current-lat').textContent = center.lat.toFixed(5) + '°';
+                document.getElementById('current-lng').textContent = center.lng.toFixed(5) + '°';
+                
+                setTimeout(() => {
+                    document.getElementById('loading-overlay').style.opacity = '0';
+                    setTimeout(() => {
+                        document.getElementById('loading-overlay').style.display = 'none';
+                    }, 500);
+                }, 2000);
+            }
+
+            setupEventListeners() {
+                // Toggle instructions visibility
+                document.getElementById('instructions-toggle').addEventListener('click', () => {
+                    this.toggleInstructions();
+                });
+                
+                // Layer activation
+                document.querySelectorAll('.layer-item').forEach(item => {
+                    item.addEventListener('click', (e) => {
+                        if (e.target.closest('.action-btn')) return;
+                        const layerName = item.getAttribute('data-layer');
+                        this.activateLayer(layerName, item);
+                    });
+                });
+                
+                // Export layer functionality
+                document.querySelectorAll('.export-layer-btn').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        const layerName = btn.getAttribute('data-layer');
+                        this.showExportTab(layerName);
+                    });
+                });
+                
+                // Add point on map click
+                this.map.on('click', (e) => {
+                    if (this.activeLayer) {
+                        this.newPointPosition = e.latlng;
+                        this.editingPoint = null;
+                        this.openTool('form', 'Nuevo Punto');
+                        this.resetPointForm();
+                        this.updatePositionIndicator(e.latlng);
+                    }
+                });
+                
+                // Save point functionality
+                document.getElementById('save-point').addEventListener('click', () => {
+                    if (this.validateForm()) {
+                        this.savePoint();
+                        this.minimizeTool('form');
+                    }
+                });
+                
+                // Close form
+                document.getElementById('close-form').addEventListener('click', () => {
+                    this.closeTool('form');
+                });
+                
+                // Close export
+                document.getElementById('close-export').addEventListener('click', () => {
+                    this.closeTool('export');
+                });
+                
+                // Close info
+                document.getElementById('close-info').addEventListener('click', () => {
+                    this.closeTool('info');
+                });
+                
+                // Minimize form
+                document.getElementById('minimize-form').addEventListener('click', () => {
+                    this.minimizeTool('form');
+                });
+                
+                // Map controls
+                document.getElementById('zoom-in').addEventListener('click', () => {
+                    this.map.zoomIn();
+                });
+                
+                document.getElementById('zoom-out').addEventListener('click', () => {
+                    this.map.zoomOut();
+                });
+                
+                document.getElementById('full-extent').addEventListener('click', () => {
+                    this.map.setView([1.8067, -78.7647], 12);
+                    this.showToast('Vista restablecida a Tumaco');
+                });
+                
+                document.getElementById('locate-me').addEventListener('click', () => {
+                    this.locateUser();
+                });
+                
+                // Show points table
+                document.getElementById('show-points').addEventListener('click', () => {
+                    this.showPointsTable();
+                });
+                
+                // Close points table
+                document.getElementById('close-table').addEventListener('click', () => {
+                    document.getElementById('points-table').style.display = 'none';
+                });
+                
+                // Mobile menu toggle
+                document.getElementById('menu-toggle').addEventListener('click', () => {
+                    document.querySelector('.sidebar').classList.toggle('active');
+                });
+                
+                // Update position indicator on map move
+                this.map.on('move', () => {
+                    this.updatePositionIndicator(this.map.getCenter());
+                });
+                
+                // Search functionality
+                document.getElementById('search-input').addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') {
+                        const query = document.getElementById('search-input').value.trim();
+                        if (query) {
+                            this.searchLocation(query);
+                        }
+                    }
+                });
+                
+                document.getElementById('search-btn').addEventListener('click', () => {
+                    const query = document.getElementById('search-input').value.trim();
+                    if (query) {
+                        this.searchLocation(query);
+                    }
+                });
+                
+                // Vias details
+                document.getElementById('show-vias-details').addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    this.showViasConsejoDetails();
+                });
+                
+                // Filter layers
+                document.getElementById('search-layers').addEventListener('input', (e) => {
+                    this.filterLayers(e.target.value);
+                });
+                
+                // Close toast
+                document.getElementById('close-toast').addEventListener('click', () => {
+                    document.getElementById('toast').classList.remove('show');
+                });
+                
+                // Print button
+                document.getElementById('print-btn').addEventListener('click', () => {
+                    this.togglePrintMode();
+                });
+                
+                // Show form from controls
+                document.getElementById('show-form').addEventListener('click', () => {
+                    if (!this.activeLayer) {
+                        this.showToast("Seleccione una capa primero");
+                        return;
+                    }
+                    
+                    if (this.minimizedTools['form']) {
+                        this.restoreTool('form');
+                    } else {
+                        this.newPointPosition = this.map.getCenter();
+                        this.editingPoint = null;
+                        this.openTool('form', 'Nuevo Punto');
+                        this.resetPointForm();
+                    }
+                });
+                
+                // Tool tabs
+                document.querySelectorAll('.tool-tab').forEach(tab => {
+                    tab.addEventListener('click', () => {
+                        const tabName = tab.getAttribute('data-tab');
+                        this.showToolTab(tabName);
+                    });
+                });
+                
+                // Export options
+                document.querySelectorAll('.export-option').forEach(option => {
+                    option.addEventListener('click', () => {
+                        const format = option.getAttribute('data-format');
+                        this.exportLayer(this.currentExportLayer, format);
+                    });
+                });
+                
+                // Restore minimized form
+                document.getElementById('minimized-form').addEventListener('click', () => {
+                    this.restoreTool('form');
+                });
+            }
+
+            openTool(toolName, title = '') {
+                document.getElementById('tool-container').style.display = 'block';
+                this.showToolTab(toolName);
+                if (title) {
+                    document.querySelector(`#${toolName}-content h2`).textContent = title;
+                }
+            }
+            
+            closeTool(toolName) {
+                document.getElementById('tool-container').style.display = 'none';
+                this.minimizedTools[toolName] = false;
+                document.getElementById(`minimized-${toolName}`).style.display = 'none';
+            }
+            
+            minimizeTool(toolName) {
+                // Save current state
+                this.minimizedTools[toolName] = {
+                    position: this.newPointPosition,
+                    editingPoint: this.editingPoint,
+                    formData: {
+                        id: document.getElementById('point-id').value,
+                        name: document.getElementById('point-name').value,
+                        category: document.getElementById('point-category').value,
+                        description: document.getElementById('point-description').value
+                    }
+                };
+                
+                // Hide tool container
+                document.getElementById('tool-container').style.display = 'none';
+                
+                // Show minimized icon
+                const minimizedTool = document.getElementById(`minimized-${toolName}`);
+                minimizedTool.style.display = 'flex';
+                
+                // Position near the last point added
+                if (this.newPointPosition) {
+                    const point = this.map.latLngToContainerPoint(this.newPointPosition);
+                    minimizedTool.style.left = `${point.x}px`;
+                    minimizedTool.style.top = `${point.y}px`;
+                }
+            }
+            
+            restoreTool(toolName) {
+                const toolState = this.minimizedTools[toolName];
+                if (!toolState) return;
+                
+                // Restore state
+                this.newPointPosition = toolState.position;
+                this.editingPoint = toolState.editingPoint;
+                
+                // Restore form data
+                if (toolName === 'form') {
+                    document.getElementById('point-id').value = toolState.formData.id;
+                    document.getElementById('point-name').value = toolState.formData.name;
+                    document.getElementById('point-category').value = toolState.formData.category;
+                    document.getElementById('point-description').value = toolState.formData.description;
+                    
+                    const title = this.editingPoint ? 'Editar Punto' : 'Nuevo Punto';
+                    this.openTool('form', title);
+                }
+                
+                // Hide minimized icon
+                document.getElementById(`minimized-${toolName}`).style.display = 'none';
+            }
+            
+            showToolTab(tabName) {
+                // Update active tab
+                document.querySelectorAll('.tool-tab').forEach(tab => {
+                    tab.classList.remove('active');
+                });
+                document.querySelector(`.tool-tab[data-tab="${tabName}"]`).classList.add('active');
+                
+                // Show active content
+                document.querySelectorAll('.tool-content').forEach(content => {
+                    content.classList.remove('active');
+                });
+                document.getElementById(`${tabName}-content`).classList.add('active');
+            }
+            
+            showExportTab(layerName) {
+                this.currentExportLayer = layerName;
+                this.openTool('export');
+                document.querySelector('#export-content h2').textContent = `Exportar ${layerName}`;
+            }
+
+            toggleInstructions() {
+                const instructionsToggle = document.getElementById('instructions-toggle');
+                instructionsToggle.classList.toggle('active');
+                document.querySelector('.instructions-content').classList.toggle('active');
+            }
+
+            activateLayer(layerName, element) {
+                if (layerName === 'vias_consejo') {
+                    this.showViasConsejoDetails();
+                    return;
+                }
+                
                 document.querySelectorAll('.layer-item').forEach(i => {
                     i.classList.remove('active');
                 });
                 
-                // Add active class to clicked item
-                this.classList.add('active');
-                
-                // Set active layer
-                activeLayer = layerName;
-                document.getElementById('active-layer').textContent = this.querySelector('.layer-name').textContent;
-                
-                // Enable add point mode
-                map.getContainer().classList.add('add-point-cursor');
-                showToast(`Capa activada. Haz clic en el mapa para agregar un punto.`);
-            });
-        });
-        
-        // Add point on map click
-        map.on('click', function(e) {
-            if (activeLayer) {
-                newPointPosition = e.latlng;
-                editingPoint = null;
-                
-                // Open point form
-                document.getElementById('point-form').style.display = 'block';
-                document.getElementById('form-title').textContent = 'Nuevo Punto';
-                document.getElementById('save-btn-text').textContent = 'Guardar Punto';
-                
-                // Reset form
-                resetPointForm();
-                
-                // Show coordinates
-                document.getElementById('current-lat').textContent = newPointPosition.lat.toFixed(5) + '°';
-                document.getElementById('current-lng').textContent = newPointPosition.lng.toFixed(5) + '°';
+                element.classList.add('active');
+                this.activeLayer = layerName;
+                document.getElementById('active-layer').textContent = element.querySelector('.layer-name').textContent;
+                this.map.getContainer().classList.add('add-point-cursor');
+                this.showToast(`Capa activada. Haz clic en el mapa para agregar un punto.`);
             }
-        });
-        
-        // Save point functionality
-        document.getElementById('save-point').addEventListener('click', function() {
-            if (validateForm()) {
-                savePoint();
-                document.getElementById('point-form').style.display = 'none';
-                newPointPosition = null;
-                editingPoint = null;
+
+            updatePositionIndicator(position) {
+                document.getElementById('current-lat').textContent = position.lat.toFixed(5) + '°';
+                document.getElementById('current-lng').textContent = position.lng.toFixed(5) + '°';
             }
-        });
-        
-        // Add another point button
-        document.getElementById('add-another-btn').addEventListener('click', function() {
-            if (validateForm()) {
-                savePoint();
-                resetPointForm();
-                showToast("Formulario listo para agregar otro punto");
+
+            validateForm() {
+                const pointId = document.getElementById('point-id').value;
+                const pointName = document.getElementById('point-name').value;
+                let valid = true;
+                
+                if (!pointId) {
+                    document.getElementById('id-error').textContent = 'El ID es obligatorio';
+                    document.getElementById('id-error').style.display = 'block';
+                    valid = false;
+                } else {
+                    if (!this.editingPoint && !this.isIdUnique(pointId, this.activeLayer)) {
+                        document.getElementById('id-error').textContent = 'El ID ya existe';
+                        document.getElementById('id-error').style.display = 'block';
+                        valid = false;
+                    } else {
+                        document.getElementById('id-error').style.display = 'none';
+                    }
+                }
+                
+                if (!pointName) {
+                    document.getElementById('name-error').textContent = 'El nombre es obligatorio';
+                    document.getElementById('name-error').style.display = 'block';
+                    valid = false;
+                } else {
+                    document.getElementById('name-error').style.display = 'none';
+                }
+                
+                return valid;
             }
-        });
-        
-        // Form validation
-        function validateForm() {
-            const pointId = document.getElementById('point-id').value;
-            const pointName = document.getElementById('point-name').value;
-            let valid = true;
             
-            if (!pointId) {
-                document.getElementById('id-error').style.display = 'block';
-                valid = false;
-            } else {
+            isIdUnique(id, layer) {
+                return !this.collectedPoints[layer].some(point => point.id === id);
+            }
+            
+            savePoint() {
+                const pointId = document.getElementById('point-id').value;
+                const pointName = document.getElementById('point-name').value;
+                const pointCategory = document.getElementById('point-category').value;
+                const pointDescription = document.getElementById('point-description').value;
+                const timestamp = new Date().toISOString();
+                
+                if (this.editingPoint) {
+                    const point = this.collectedPoints[this.editingPoint.layer][this.editingPoint.index];
+                    const marker = this.markers[this.editingPoint.layer][this.editingPoint.index];
+                    
+                    point.id = pointId;
+                    point.name = pointName;
+                    point.category = pointCategory;
+                    point.description = pointDescription;
+                    
+                    // Para sitios, actualizar la etiqueta
+                    if (this.activeLayer === 'sitio') {
+                        marker.setContent(pointName);
+                    } else {
+                        marker.setPopupContent(`
+                            <b>${pointName}</b><br>
+                            <small>${pointCategory ? pointCategory + ' • ' : ''}ID: ${pointId}</small><br>
+                            ${pointDescription}
+                        `);
+                    }
+                    
+                    this.showToast(`Punto "${pointName}" actualizado`);
+                } else {
+                    let marker;
+                    
+                    // Manejo especial para la capa de sitios
+                    if (this.activeLayer === 'sitio') {
+                        // Crear etiqueta de texto para sitios
+                        marker = L.marker(this.newPointPosition, {
+                            icon: L.divIcon({
+                                className: 'site-label',
+                                html: pointName,
+                                iconSize: null,
+                                iconAnchor: [0, 0]
+                            })
+                        }).addTo(this.layers[this.activeLayer]);
+                        
+                        // Crear popup para mostrar detalles
+                        marker.bindPopup(`
+                            <b>${pointName}</b><br>
+                            <small>ID: ${pointId}</small><br>
+                            ${pointDescription}
+                        `);
+                    } else {
+                        // Para otras capas, usar el ícono normal
+                        marker = L.marker(this.newPointPosition, {
+                            icon: this.getIcon(this.activeLayer)
+                        }).addTo(this.layers[this.activeLayer])
+                        .bindPopup(`
+                            <b>${pointName}</b><br>
+                            <small>${pointCategory ? pointCategory + ' • ' : ''}ID: ${pointId}</small><br>
+                            ${pointDescription}
+                        `);
+                    }
+                    
+                    // Add click event for editing
+                    marker.on('click', (e) => {
+                        // Find the point in collectedPoints
+                        for (const layerName in this.collectedPoints) {
+                            const points = this.collectedPoints[layerName];
+                            for (let i = 0; i < points.length; i++) {
+                                const point = points[i];
+                                if (point.lat === e.latlng.lat && point.lng === e.latlng.lng) {
+                                    // Set editing state
+                                    this.editingPoint = { layer: layerName, index: i };
+                                    this.activeLayer = layerName;
+                                    document.getElementById('active-layer').textContent = layerName;
+                                    
+                                    // Open form in edit mode
+                                    this.openTool('form', 'Editar Punto');
+                                    
+                                    // Fill form with point data
+                                    document.getElementById('point-id').value = point.id;
+                                    document.getElementById('point-name').value = point.name;
+                                    document.getElementById('point-category').value = point.category || '';
+                                    document.getElementById('point-description').value = point.description || '';
+                                    
+                                    // Show coordinates
+                                    this.updatePositionIndicator(e.latlng);
+                                    
+                                    // Highlight marker
+                                    marker.getElement().classList.add('pulse');
+                                    setTimeout(() => {
+                                        marker.getElement().classList.remove('pulse');
+                                    }, 2000);
+                                    break;
+                                }
+                            }
+                        }
+                    });
+                    
+                    // Store point data
+                    this.collectedPoints[this.activeLayer].push({
+                        id: pointId,
+                        name: pointName,
+                        category: pointCategory,
+                        description: pointDescription,
+                        lat: this.newPointPosition.lat,
+                        lng: this.newPointPosition.lng,
+                        type: this.activeLayer,
+                        timestamp: timestamp
+                    });
+                    
+                    // Store marker reference
+                    this.markers[this.activeLayer].push(marker);
+                    
+                    // Add animation
+                    marker.getElement().classList.add('pulse');
+                    setTimeout(() => {
+                        marker.getElement().classList.remove('pulse');
+                    }, 2000);
+                    
+                    // Update statistics
+                    this.totalPoints++;
+                    this.todayPoints++;
+                    this.updateStatistics();
+                    this.showToast(`Punto "${pointName}" agregado a la capa`);
+                }
+                
+                this.savePointsToLocalStorage();
+            }
+            
+            // Método para actualizar etiquetas de sitio
+            updateSiteLabel(marker, name) {
+                marker.setIcon(L.divIcon({
+                    className: 'site-label',
+                    html: name,
+                    iconSize: null,
+                    iconAnchor: [0, 0]
+                }));
+            }
+            
+            getIcon(layerName) {
+                const icons = {
+                    amenaza: L.divIcon({
+                        className: 'custom-icon',
+                        html: '<div class="icon-inner amenaza-color"><i class="fas fa-skull-crossbones"></i></div>',
+                        iconSize: [32, 32],
+                        iconAnchor: [16, 32]
+                    }),
+                    se_amenaza: L.divIcon({
+                        className: 'custom-icon',
+                        html: '<div class="icon-inner se-amenaza-color"><i class="fas fa-radiation"></i></div>',
+                        iconSize: [32, 32],
+                        iconAnchor: [16, 32]
+                    }),
+                    conflicto: L.divIcon({
+                        className: 'custom-icon',
+                        html: '<div class="icon-inner conflicto-color"><i class="fas fa-handshake-slash"></i></div>',
+                        iconSize: [32, 32],
+                        iconAnchor: [16, 32]
+                    }),
+                    ecosistemas: L.divIcon({
+                        className: 'custom-icon',
+                        html: '<div class="icon-inner ecosistemas-color"><i class="fas fa-leaf"></i></div>',
+                        iconSize: [32, 32],
+                        iconAnchor: [16, 32]
+                    }),
+                    medios_vida: L.divIcon({
+                        className: 'custom-icon',
+                        html: '<div class="icon-inner medios-vida-color"><i class="fas fa-hand-holding-heart"></i></div>',
+                        iconSize: [32, 32],
+                        iconAnchor: [16, 32]
+                    }),
+                    sitio: L.divIcon({
+                        className: 'custom-icon',
+                        html: '<div class="icon-inner sitio-color"><i class="fas fa-landmark"></i></div>',
+                        iconSize: [32, 32],
+                        iconAnchor: [16, 32]
+                    })
+                };
+                return icons[layerName];
+            }
+            
+            updateStatistics() {
+                document.getElementById('points-count').textContent = this.totalPoints;
+                document.getElementById('total-points').textContent = this.totalPoints;
+                document.getElementById('today-points').textContent = this.todayPoints;
+                document.getElementById('amenaza-count').textContent = this.collectedPoints.amenaza.length;
+                document.getElementById('conflicto-count').textContent = this.collectedPoints.conflicto.length;
+                document.getElementById('ecosistemas-count').textContent = this.collectedPoints.ecosistemas.length;
+                document.getElementById('sitio-count').textContent = this.collectedPoints.sitio.length;
+            }
+            
+            resetPointForm() {
+                document.getElementById('point-id').value = '';
+                document.getElementById('point-name').value = '';
+                document.getElementById('point-category').value = '';
+                document.getElementById('point-description').value = '';
+                document.getElementById('point-id').focus();
                 document.getElementById('id-error').style.display = 'none';
-            }
-            
-            if (!pointName) {
-                document.getElementById('name-error').style.display = 'block';
-                valid = false;
-            } else {
                 document.getElementById('name-error').style.display = 'none';
             }
             
-            return valid;
-        }
-        
-        // Function to save point
-        function savePoint() {
-            const pointId = document.getElementById('point-id').value;
-            const pointName = document.getElementById('point-name').value;
-            const pointDescription = document.getElementById('point-description').value;
+            exportLayer(layerName, format) {
+                if (this.collectedPoints[layerName].length === 0) {
+                    this.showToast(`La capa no contiene puntos`, true);
+                    return;
+                }
+                
+                this.showToast(`Exportando ${layerName} como ${format}...`);
+                this.closeTool('export');
+                
+                setTimeout(() => {
+                    this.showToast(`Capa ${layerName} exportada exitosamente!`);
+                }, 1500);
+            }
             
-            if (editingPoint) {
-                // Edit existing point
-                const point = collectedPoints[editingPoint.layer][editingPoint.index];
-                const marker = markers[editingPoint.layer][editingPoint.index];
+            searchLocation(query) {
+                this.showToast(`Buscando: ${query}...`);
                 
-                // Update point data
-                point.id = pointId;
-                point.name = pointName;
-                point.description = pointDescription;
+                setTimeout(() => {
+                    this.showToast(`Ubicación encontrada: ${query}`);
+                    this.map.setView([1.8067, -78.7647], 14);
+                }, 1000);
+            }
+            
+            showToast(message, isError = false) {
+                const toast = document.getElementById('toast');
+                const toastMessage = document.getElementById('toast-message');
+                const toastIcon = document.querySelector('.toast-icon i');
+                const toastTitle = document.querySelector('.toast-title');
                 
-                // Update marker
-                marker.setPopupContent(`<b>${pointName}</b><br>ID: ${pointId}<br>${pointDescription}`);
+                toastMessage.textContent = message;
                 
-                // Show success message
-                showToast(`Punto "${pointName}" actualizado`);
-            } else {
-                // Create new point
-                const marker = L.marker(newPointPosition, {icon: icons[activeLayer]})
-                    .addTo(layers[activeLayer])
-                    .bindPopup(`<b>${pointName}</b><br>ID: ${pointId}<br>${pointDescription}`);
+                if (isError) {
+                    toastTitle.textContent = 'Error';
+                    toastIcon.className = 'fas fa-exclamation-triangle';
+                    toast.style.background = 'linear-gradient(to right, #ff416c, #ff4b2b)';
+                } else {
+                    toastTitle.textContent = 'Éxito';
+                    toastIcon.className = 'fas fa-check-circle';
+                    toast.style.background = 'linear-gradient(to right, #56ab2f, #a8e063)';
+                }
                 
-                // Add click event for editing
-                marker.on('click', function(e) {
-                    // Find the point in collectedPoints
-                    for (const layerName in collectedPoints) {
-                        const points = collectedPoints[layerName];
-                        for (let i = 0; i < points.length; i++) {
-                            const point = points[i];
-                            if (point.lat === e.latlng.lat && point.lng === e.latlng.lng) {
-                                // Set editing state
-                                editingPoint = { layer: layerName, index: i };
-                                activeLayer = layerName;
-                                document.getElementById('active-layer').textContent = layerName;
+                toast.classList.add('show');
+                
+                setTimeout(() => {
+                    toast.classList.remove('show');
+                }, 4000);
+            }
+            
+            savePointsToLocalStorage() {
+                localStorage.setItem('geoportal_tumaco_points', JSON.stringify(this.collectedPoints));
+                localStorage.setItem('geoportal_tumaco_stats', JSON.stringify({
+                    totalPoints: this.totalPoints,
+                    todayPoints: this.todayPoints
+                }));
+            }
+            
+            loadPointsFromLocalStorage() {
+                const savedPoints = localStorage.getItem('geoportal_tumaco_points');
+                const savedStats = localStorage.getItem('geoportal_tumaco_stats');
+                
+                if (savedPoints) {
+                    try {
+                        this.collectedPoints = JSON.parse(savedPoints);
+                        
+                        for (const layer in this.collectedPoints) {
+                            this.collectedPoints[layer].forEach(point => {
+                                let marker;
                                 
-                                // Open form in edit mode
-                                document.getElementById('point-form').style.display = 'block';
-                                document.getElementById('form-title').textContent = 'Editar Punto';
-                                document.getElementById('save-btn-text').textContent = 'Actualizar Punto';
+                                // Manejo especial para sitios
+                                if (layer === 'sitio') {
+                                    marker = L.marker([point.lat, point.lng], {
+                                        icon: L.divIcon({
+                                            className: 'site-label',
+                                            html: point.name,
+                                            iconSize: null,
+                                            iconAnchor: [0, 0]
+                                        })
+                                    }).addTo(this.layers[layer]);
+                                    
+                                    // Crear popup para mostrar detalles
+                                    marker.bindPopup(`
+                                        <b>${point.name}</b><br>
+                                        <small>ID: ${point.id}</small><br>
+                                        ${point.description || ''}
+                                    `);
+                                } else {
+                                    marker = L.marker([point.lat, point.lng], {
+                                        icon: this.getIcon(layer)
+                                    }).addTo(this.layers[layer])
+                                    .bindPopup(`
+                                        <b>${point.name}</b><br>
+                                        <small>${point.category ? point.category + ' • ' : ''}ID: ${point.id}</small><br>
+                                        ${point.description || ''}
+                                    `);
+                                }
                                 
-                                // Fill form with point data
-                                document.getElementById('point-id').value = point.id;
-                                document.getElementById('point-name').value = point.name;
-                                document.getElementById('point-description').value = point.description;
+                                marker.on('click', (e) => {
+                                    for (const layerName in this.collectedPoints) {
+                                        const points = this.collectedPoints[layerName];
+                                        for (let i = 0; i < points.length; i++) {
+                                            const p = points[i];
+                                            if (p.lat === e.latlng.lat && p.lng === e.latlng.lng) {
+                                                this.editingPoint = { layer: layerName, index: i };
+                                                this.activeLayer = layerName;
+                                                document.getElementById('active-layer').textContent = layerName;
+                                                this.openTool('form', 'Editar Punto');
+                                                document.getElementById('point-id').value = p.id;
+                                                document.getElementById('point-name').value = p.name;
+                                                document.getElementById('point-category').value = p.category || '';
+                                                document.getElementById('point-description').value = p.description || '';
+                                                this.updatePositionIndicator(e.latlng);
+                                                marker.getElement().classList.add('pulse');
+                                                setTimeout(() => {
+                                                    marker.getElement().classList.remove('pulse');
+                                                }, 2000);
+                                                break;
+                                            }
+                                        }
+                                    }
+                                });
                                 
-                                // Show coordinates
-                                document.getElementById('current-lat').textContent = point.lat.toFixed(5) + '°';
-                                document.getElementById('current-lng').textContent = point.lng.toFixed(5) + '°';
-                                
-                                // Highlight marker
+                                this.markers[layer].push(marker);
+                            });
+                        }
+                        
+                        this.showToast('Datos cargados desde almacenamiento local');
+                    } catch (e) {
+                        console.error('Error parsing saved points:', e);
+                        this.showToast('Error cargando datos guardados', true);
+                    }
+                }
+                
+                if (savedStats) {
+                    try {
+                        const stats = JSON.parse(savedStats);
+                        this.totalPoints = stats.totalPoints || 0;
+                        this.todayPoints = stats.todayPoints || 0;
+                    } catch (e) {
+                        console.error('Error parsing saved stats:', e);
+                    }
+                }
+            }
+            
+            loadViasConsejo() {
+                setTimeout(() => {
+                    this.showToast("Capa Vías Consejo cargada exitosamente");
+                }, 1500);
+            }
+            
+            showViasConsejoDetails() {
+                this.openTool('info');
+                document.querySelector('#info-content h2').textContent = 'Vías Consejo';
+                document.getElementById('layer-info-content').innerHTML = `
+                    <p>Esta capa muestra la red de vías principales de Tumaco.</p>
+                    <ul>
+                        <li><strong>Tipo:</strong> Red vial</li>
+                        <li><strong>Origen:</strong> Consejo Municipal</li>
+                        <li><strong>Actualizado:</strong> Junio 2025</li>
+                    </ul>
+                `;
+            }
+            
+            makeFormDraggable() {
+                const container = document.getElementById('tool-container');
+                const header = container.querySelector('.form-header');
+                let isDragging = false;
+                let currentX;
+                let currentY;
+                let initialX;
+                let initialY;
+                let xOffset = 0;
+                let yOffset = 0;
+                
+                header.addEventListener("mousedown", dragStart);
+                document.addEventListener("mouseup", dragEnd);
+                document.addEventListener("mousemove", drag);
+                
+                function dragStart(e) {
+                    initialX = e.clientX - xOffset;
+                    initialY = e.clientY - yOffset;
+                    
+                    if (e.target === header || e.target.closest('.form-header')) {
+                        isDragging = true;
+                    }
+                }
+                
+                function dragEnd(e) {
+                    initialX = currentX;
+                    initialY = currentY;
+                    isDragging = false;
+                }
+                
+                function drag(e) {
+                    if (isDragging) {
+                        e.preventDefault();
+                        currentX = e.clientX - initialX;
+                        currentY = e.clientY - initialY;
+                        xOffset = currentX;
+                        yOffset = currentY;
+                        setTranslate(currentX, currentY, container);
+                    }
+                }
+                
+                function setTranslate(xPos, yPos, el) {
+                    el.style.transform = "translate3d(" + xPos + "px, " + yPos + "px, 0)";
+                }
+            }
+            
+            locateUser() {
+                if ("geolocation" in navigator) {
+                    navigator.geolocation.getCurrentPosition((position) => {
+                        const userLocation = [position.coords.latitude, position.coords.longitude];
+                        this.map.setView(userLocation, 15);
+                        
+                        L.marker(userLocation, {
+                            icon: L.divIcon({
+                                className: 'custom-icon',
+                                html: '<div class="icon-inner" style="background: linear-gradient(135deg, #2193b0, #6dd5ed);"><i class="fas fa-user"></i></div>',
+                                iconSize: [32, 32],
+                                iconAnchor: [16, 32]
+                            })
+                        }).addTo(this.map)
+                        .bindPopup('Tu ubicación actual')
+                        .openPopup();
+                        
+                        this.showToast('Ubicación encontrada');
+                    }, (error) => {
+                        this.showToast(`Error de ubicación: ${error.message}`, true);
+                    });
+                } else {
+                    this.showToast('Geolocalización no disponible', true);
+                }
+            }
+            
+            showPointsTable() {
+                const tableContainer = document.getElementById('points-table');
+                const tableBody = document.getElementById('points-table-body');
+                tableBody.innerHTML = '';
+                
+                for (const layer in this.collectedPoints) {
+                    this.collectedPoints[layer].forEach(point => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>${point.id}</td>
+                            <td>${point.name}</td>
+                            <td>${point.type}</td>
+                            <td>${new Date(point.timestamp).toLocaleDateString()}</td>
+                        `;
+                        
+                        row.addEventListener('click', () => {
+                            this.map.setView([point.lat, point.lng], 15);
+                            const marker = this.markers[layer].find(m => 
+                                m.getLatLng().lat === point.lat && 
+                                m.getLatLng().lng === point.lng
+                            );
+                            
+                            if (marker) {
                                 marker.getElement().classList.add('pulse');
                                 setTimeout(() => {
                                     marker.getElement().classList.remove('pulse');
                                 }, 2000);
-                                break;
+                                marker.openPopup();
                             }
-                        }
-                    }
-                });
-                
-                // Store point data
-                collectedPoints[activeLayer].push({
-                    id: pointId,
-                    name: pointName,
-                    description: pointDescription,
-                    lat: newPointPosition.lat,
-                    lng: newPointPosition.lng,
-                    type: activeLayer
-                });
-                
-                // Store marker reference
-                markers[activeLayer].push(marker);
-                
-                // Add animation
-                marker.getElement().classList.add('pulse');
-                setTimeout(() => {
-                    marker.getElement().classList.remove('pulse');
-                }, 2000);
-                
-                // Show success message
-                showToast(`Punto "${pointName}" agregado a la capa`);
-                
-                // Update points count
-                updatePointsCount();
-            }
-        }
-        
-        // Update points count display
-        function updatePointsCount() {
-            let totalPoints = 0;
-            for (const layer in collectedPoints) {
-                totalPoints += collectedPoints[layer].length;
-            }
-            document.getElementById('points-count').textContent = totalPoints;
-        }
-        
-        // Reset point form
-        function resetPointForm() {
-            document.getElementById('point-id').value = '';
-            document.getElementById('point-name').value = '';
-            document.getElementById('point-description').value = '';
-            document.getElementById('point-id').focus();
-            document.getElementById('id-error').style.display = 'none';
-            document.getElementById('name-error').style.display = 'none';
-        }
-        
-        // Export layer functionality
-        document.querySelectorAll('.export-layer-btn').forEach(btn => {
-            btn.addEventListener('click', function(e) {
-                e.stopPropagation();
-                const layerName = this.getAttribute('data-layer');
-                currentExportLayer = layerName;
-                document.getElementById('export-options').style.display = 'block';
-            });
-        });
-        
-        // Export option selection
-        document.querySelectorAll('.export-option').forEach(option => {
-            option.addEventListener('click', function() {
-                const format = this.getAttribute('data-format');
-                exportLayer(currentExportLayer, format);
-                document.getElementById('export-options').style.display = 'none';
-            });
-        });
-        
-        // Export layer to selected format
-        function exportLayer(layerName, format) {
-            if (collectedPoints[layerName].length === 0) {
-                showToast(`La capa no contiene puntos para exportar`, true);
-                return;
-            }
-            
-            let data, mimeType, extension;
-            
-            if (format === 'geojson') {
-                // Create GeoJSON features
-                const features = collectedPoints[layerName].map(point => ({
-                    type: "Feature",
-                    properties: {
-                        id: point.id,
-                        name: point.name,
-                        description: point.description,
-                        type: point.type
-                    },
-                    geometry: {
-                        type: "Point",
-                        coordinates: [point.lng, point.lat]
-                    }
-                }));
-                
-                // Create GeoJSON object
-                data = JSON.stringify({
-                    type: "FeatureCollection",
-                    features: features
-                }, null, 2);
-                
-                mimeType = "application/json";
-                extension = "geojson";
-            } 
-            else if (format === 'csv') {
-                // Create CSV content
-                let csvContent = "ID,Nombre,Descripción,Latitud,Longitud,Tipo\n";
-                
-                collectedPoints[layerName].forEach(point => {
-                    csvContent += `"${point.id}","${point.name}","${point.description}",${point.lat},${point.lng},${point.type}\n`;
-                });
-                
-                data = csvContent;
-                mimeType = "text/csv";
-                extension = "csv";
-            }
-            else if (format === 'kml') {
-                // Create KML content
-                let kmlContent = `<?xml version="1.0" encoding="UTF-8"?>
-<kml xmlns="http://www.opengis.net/kml/2.2">
-<Document>
-    <name>${layerName}</name>
-    <description>Puntos exportados desde Geoportal Tumaco</description>`;
-                
-                collectedPoints[layerName].forEach(point => {
-                    kmlContent += `
-    <Placemark>
-        <name>${point.name}</name>
-        <description>ID: ${point.id}\n${point.description}</description>
-        <Point>
-            <coordinates>${point.lng},${point.lat},0</coordinates>
-        </Point>
-    </Placemark>`;
-                });
-                
-                kmlContent += `
-</Document>
-</kml>`;
-                
-                data = kmlContent;
-                mimeType = "application/vnd.google-earth.kml+xml";
-                extension = "kml";
-            }
-            
-            // Create blob and download
-            const blob = new Blob([data], { type: mimeType });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `capa_${layerName}_tumaco.${extension}`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-            
-            showToast(`Capa ${layerName} exportada como ${format.toUpperCase()} exitosamente!`);
-        }
-        
-        // Close form
-        document.getElementById('close-form').addEventListener('click', function() {
-            document.getElementById('point-form').style.display = 'none';
-            newPointPosition = null;
-            editingPoint = null;
-        });
-        
-        // Close export options
-        document.getElementById('close-export').addEventListener('click', function() {
-            document.getElementById('export-options').style.display = 'none';
-        });
-        
-        // Map controls
-        document.getElementById('zoom-in').addEventListener('click', function() {
-            map.zoomIn();
-        });
-        
-        document.getElementById('zoom-out').addEventListener('click', function() {
-            map.zoomOut();
-        });
-        
-        document.getElementById('full-extent').addEventListener('click', function() {
-            map.setView([1.8067, -78.7647], 12);
-            showToast('Vista restablecida a Tumaco');
-        });
-        
-        document.getElementById('locate-me').addEventListener('click', function() {
-            if ("geolocation" in navigator) {
-                navigator.geolocation.getCurrentPosition(function(position) {
-                    const userLocation = [position.coords.latitude, position.coords.longitude];
-                    map.setView(userLocation, 15);
-                    
-                    // Add a marker at user location
-                    L.marker(userLocation, {
-                        icon: L.divIcon({
-                            className: 'custom-icon',
-                            html: '<div class="icon-inner" style="background: linear-gradient(135deg, #2193b0, #6dd5ed);"><i class="fas fa-user"></i></div>',
-                            iconSize: [36, 36],
-                            iconAnchor: [18, 36]
-                        })
-                    }).addTo(map)
-                    .bindPopup('Tu ubicación actual')
-                    .openPopup();
-                    
-                    showToast('Ubicación encontrada');
-                }, function(error) {
-                    showToast(`Error de ubicación: ${error.message}`, true);
-                });
-            } else {
-                showToast('Geolocalización no disponible en este navegador', true);
-            }
-        });
-        
-        // Show points table
-        document.getElementById('show-points').addEventListener('click', function() {
-            const tableContainer = document.getElementById('points-table');
-            const tableBody = document.getElementById('points-table-body');
-            
-            // Clear existing table rows
-            tableBody.innerHTML = '';
-            
-            // Add points to table
-            for (const layer in collectedPoints) {
-                collectedPoints[layer].forEach(point => {
-                    const row = document.createElement('tr');
-                    row.innerHTML = `
-                        <td>${point.id}</td>
-                        <td>${point.name}</td>
-                        <td>${point.type}</td>
-                    `;
-                    
-                    // Add click event to focus on the point
-                    row.addEventListener('click', function() {
-                        map.setView([point.lat, point.lng], 15);
+                        });
                         
-                        // Highlight the marker
-                        const marker = markers[layer].find(m => 
-                            m.getLatLng().lat === point.lat && 
-                            m.getLatLng().lng === point.lng
-                        );
-                        
-                        if (marker) {
-                            marker.getElement().classList.add('pulse');
-                            setTimeout(() => {
-                                marker.getElement().classList.remove('pulse');
-                            }, 2000);
-                            marker.openPopup();
-                        }
+                        tableBody.appendChild(row);
                     });
-                    
-                    tableBody.appendChild(row);
-                });
-            }
-            
-            tableContainer.style.display = 'block';
-        });
-        
-        // Close points table
-        document.getElementById('close-table').addEventListener('click', function() {
-            document.getElementById('points-table').style.display = 'none';
-        });
-        
-        // Mobile menu toggle
-        document.getElementById('menu-toggle').addEventListener('click', function() {
-            document.querySelector('.sidebar').classList.toggle('active');
-        });
-        
-        // Update position indicator on map move
-        map.on('move', function() {
-            const center = map.getCenter();
-            document.getElementById('current-lat').textContent = center.lat.toFixed(5) + '°';
-            document.getElementById('current-lng').textContent = center.lng.toFixed(5) + '°';
-        });
-        
-        // Search functionality
-        document.getElementById('search-input').addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                const query = this.value.trim();
-                if (query) {
-                    searchLocation(query);
                 }
-            }
-        });
-        
-        // Function to search for a location using OpenStreetMap Nominatim
-        function searchLocation(query) {
-            const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`;
-            
-            fetch(url)
-                .then(response => response.json())
-                .then(data => {
-                    if (data.length > 0) {
-                        const result = data[0];
-                        const lat = parseFloat(result.lat);
-                        const lon = parseFloat(result.lon);
-                        
-                        map.setView([lat, lon], 15);
-                        
-                        // Add a marker at the search result
-                        L.marker([lat, lon], {
-                            icon: L.divIcon({
-                                className: 'custom-icon',
-                                html: '<div class="icon-inner" style="background: linear-gradient(135deg, #FFD700, #FFA500);"><i class="fas fa-search-location"></i></div>',
-                                iconSize: [36, 36],
-                                iconAnchor: [18, 36]
-                            })
-                        }).addTo(map)
-                        .bindPopup(`<b>${result.display_name}</b>`)
-                        .openPopup();
-                        
-                        showToast(`Ubicación encontrada: ${result.display_name}`);
-                    } else {
-                        showToast('Ubicación no encontrada', true);
-                    }
-                })
-                .catch(error => {
-                    showToast(`Error en la búsqueda: ${error.message}`, true);
-                });
-        }
-        
-        // Show toast notification
-        function showToast(message, isError = false) {
-            const toast = document.getElementById('toast');
-            const toastMessage = document.getElementById('toast-message');
-            
-            toastMessage.textContent = message;
-            
-            if (isError) {
-                toast.innerHTML = '<i class="fas fa-exclamation-triangle"></i> ' + message;
-                toast.style.background = 'linear-gradient(to right, #ff416c, #ff4b2b)';
-            } else {
-                toast.innerHTML = '<i class="fas fa-check-circle"></i> ' + message;
-                toast.style.background = 'linear-gradient(to right, #56ab2f, #a8e063)';
+                
+                tableContainer.style.display = 'block';
             }
             
-            toast.classList.add('show');
-            
-            setTimeout(() => {
-                toast.classList.remove('show');
-            }, 3000);
-        }
-        
-        // Load PARES_SE GeoJSON layer
-        function loadPARES_SE() {
-            // URL del GeoJSON (ruta local)
-            const geojsonUrl = "J:/Mi unidad/Tumaco/geojson mapas/PARES_SE.geojson";
-            
-            fetch(geojsonUrl)
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error('Error al cargar el GeoJSON');
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    L.geoJSON(data, {
-                        style: function(feature) {
-                            return {
-                                color: '#ff9a00',
-                                weight: 3,
-                                opacity: 0.7,
-                                fillOpacity: 0.2
-                            };
-                        },
-                        onEachFeature: function(feature, layer) {
-                            if (feature.properties) {
-                                let content = '<div style="max-width:250px;">';
-                                for (const key in feature.properties) {
-                                    content += `<b>${key}:</b> ${feature.properties[key]}<br>`;
-                                }
-                                content += '</div>';
-                                layer.bindPopup(content);
-                            }
-                        }
-                    }).addTo(layers.se_amenaza);
+            filterLayers(query) {
+                const layers = document.querySelectorAll('.layer-item');
+                const normalizedQuery = query.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+                
+                layers.forEach(layer => {
+                    const layerName = layer.querySelector('.layer-name').textContent.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+                    const layerDesc = layer.querySelector('.layer-desc').textContent.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
                     
-                    showToast('Capa PARES_SE cargada exitosamente!');
-                })
-                .catch(error => {
-                    console.error('Error loading GeoJSON:', error);
-                    showToast('Error cargando la capa PARES SE', true);
+                    if (layerName.includes(normalizedQuery) || layerDesc.includes(normalizedQuery)) {
+                        layer.style.display = 'flex';
+                    } else {
+                        layer.style.display = 'none';
+                    }
                 });
+            }
+            
+            togglePrintMode() {
+                document.body.classList.toggle('print-mode');
+                this.showToast("Modo impresión " + (document.body.classList.contains('print-mode') ? "activado" : "desactivado"));
+            }
         }
-        
-        // Initial position update
-        const center = map.getCenter();
-        document.getElementById('current-lat').textContent = center.lat.toFixed(5) + '°';
-        document.getElementById('current-lng').textContent = center.lng.toFixed(5) + '°';
-        updatePointsCount();
-        
-        // Load PARES_SE layer on startup
-        loadPARES_SE();
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const geoportal = new GeoportalTumaco();
+        });
     </script>
 </body>
 </html>
